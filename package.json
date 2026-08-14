@@ -32,7 +32,7 @@
   },
   "scripts": {
     "build": "tsc -b && tsdown",
-    "prepare": "tsdown",
+    "prepublishOnly": "tsc -b && tsdown",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
     "watch": "tsdown --watch"
