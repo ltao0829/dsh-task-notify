@@ -1,0 +1,9 @@
+# dsh-task-notify bundle patch: inserts its plugin row into the web profile
+# roster. Install with `dsh plugin --profile <name> add <path-or-git-url>`.
+#
+# The single row mounts BOTH halves: the host side registers the notification
+# preference settings section, and the browser side (the completion watcher
+# plus its settings card) ships via the dsh.client declaration in package.json.
+- insert:
+    - id: task-notify
+      name: '@linxin666/dsh-task-notify'
