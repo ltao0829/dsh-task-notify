@@ -20,6 +20,8 @@ export interface Config {
     job?: boolean;
     /** Remind when a session waits for review (approval / plan / question). */
     review?: boolean;
+    /** Remind when a turn or background job fails. */
+    failure?: boolean;
     /** Also send a browser (OS-level) notification. */
     browser?: boolean;
     /** Also play a short beep. */

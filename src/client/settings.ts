@@ -14,6 +14,8 @@ export interface TaskNotifySettings {
   job: boolean
   /** Remind when a session waits for review (approval / plan / question). */
   review: boolean
+  /** Remind when a turn or background job fails. */
+  failure: boolean
   /** Also send an OS-level browser notification. */
   browser: boolean
   /** Also play a short beep. */
@@ -27,6 +29,7 @@ const DEFAULTS: TaskNotifySettings = {
   turn: true,
   job: true,
   review: true,
+  failure: true,
   browser: true,
   sound: false,
 }

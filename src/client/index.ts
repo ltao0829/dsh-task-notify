@@ -8,7 +8,7 @@
  * @module @linxin666/dsh-task-notify/client
  */
 
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ClientContext, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
 // Type-only: pulls the locale plugin's Context merge (ctx.locale).
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-slots'
@@ -85,8 +85,12 @@ export function apply(ctx: ClientContext): void {
     if (!cfg.enabled) return
     for (const event of events) {
       if (event.kind === 'turn' && !cfg.turn) continue
-      if (event.kind === 'job' && !cfg.job) continue
       if (event.kind === 'review' && !cfg.review) continue
+      if (event.kind === 'job') {
+        const failed = event.job.status === 'failed' || event.job.status === 'killed'
+        if (failed && !cfg.failure) continue
+        if (!failed && !cfg.job) continue
+      }
       notifyEvent(event, {
         browser: cfg.browser,
         sound: cfg.sound,
@@ -98,4 +102,50 @@ export function apply(ctx: ClientContext): void {
     applySnapshot()
     return unsubscribe
   }, 'task-notify: watcher')
+
+  // Turn-failure watcher: subscribe to each session's ConversationSnapshot and
+  // detect lastAgentError transitions (null -> non-null = the turn errored).
+  const errorSeen = new Map<SessionId, string | null>()
+  const errorUnsubs = new Map<SessionId, () => void>()
+  const syncErrorWatchers = (): void => {
+    const snapshot = sessions.list.getSnapshot()
+    const ids = new Set(snapshot.ids)
+    for (const [id, unsub] of [...errorUnsubs]) {
+      if (!ids.has(id)) {
+        unsub()
+        errorUnsubs.delete(id)
+        errorSeen.delete(id)
+      }
+    }
+    for (const id of ids) {
+      if (errorUnsubs.has(id)) continue
+      const session = sessions.binding(id)?.session
+      if (session === undefined) continue
+      const onSnapshot = (): void => {
+        const err = session.getSnapshot().lastAgentError
+        const before = errorSeen.get(id)
+        errorSeen.set(id, err)
+        if (before !== undefined && before === null && err !== null) {
+          const cfg = getSettings()
+          if (!cfg.enabled || !cfg.failure) return
+          const title = sessions.list.getSnapshot().byId[id]?.displayTitle ?? id
+          notifyEvent({ kind: 'failure', sessionId: id, title, message: err }, {
+            browser: cfg.browser,
+            sound: cfg.sound,
+          })
+        }
+      }
+      errorUnsubs.set(id, session.subscribe(onSnapshot))
+      onSnapshot()
+    }
+  }
+  ctx.effect(() => {
+    const listUnsub = sessions.list.subscribe(syncErrorWatchers)
+    syncErrorWatchers()
+    return () => {
+      listUnsub()
+      for (const unsub of errorUnsubs.values()) unsub()
+      errorUnsubs.clear()
+    }
+  }, 'task-notify: turn-failure watcher')
 }

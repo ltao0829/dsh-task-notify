@@ -14,6 +14,8 @@ export declare const zh: {
     'settings.jobHint': string;
     'settings.review': string;
     'settings.reviewHint': string;
+    'settings.failure': string;
+    'settings.failureHint': string;
     'settings.browser': string;
     'settings.browserHint': string;
     'settings.sound': string;
@@ -47,6 +49,8 @@ export declare const en: {
     'settings.jobHint': string;
     'settings.review': string;
     'settings.reviewHint': string;
+    'settings.failure': string;
+    'settings.failureHint': string;
     'settings.browser': string;
     'settings.browserHint': string;
     'settings.sound': string;
