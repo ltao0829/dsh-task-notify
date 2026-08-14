@@ -28,12 +28,11 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
 
   interface SlotMap {
     /**
-     * The child slot the Web UI plugin group declares; this card registers
-     * into the group instead of the top-level settings.plugin.item list.
-     * Spelled here with the same shape so this package can register without
-     * depending on the sibling UI package.
+     * The core plugin-configuration section slot. Spelled here with the same
+     * shape so this package can register its card without depending on the
+     * package that declares the slot at runtime.
      */
-    'web-ui.plugin.item': { kind: 'list'; scope: 'root'; owner: SettingsPluginItemOwnerProps }
+    'settings.plugin.item': { kind: 'list'; scope: 'root'; owner: SettingsPluginItemOwnerProps }
   }
 }
 
@@ -54,8 +53,8 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'task-notify: dictionaries')
 
   // Settings card: always visible, backed by localStorage.
-  ctx.slots.inject('web-ui.plugin.item', () => ctx.slots.register({
-    name: 'web-ui.plugin.item',
+  ctx.slots.inject('settings.plugin.item', () => ctx.slots.register({
+    name: 'settings.plugin.item',
     id: 'task-notify-settings',
     order: 150,
     locale: NS,

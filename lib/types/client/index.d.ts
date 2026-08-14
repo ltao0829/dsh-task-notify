@@ -17,12 +17,11 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     }
     interface SlotMap {
         /**
-         * The child slot the Web UI plugin group declares; this card registers
-         * into the group instead of the top-level settings.plugin.item list.
-         * Spelled here with the same shape so this package can register without
-         * depending on the sibling UI package.
+         * The core plugin-configuration section slot. Spelled here with the same
+         * shape so this package can register its card without depending on the
+         * package that declares the slot at runtime.
          */
-        'web-ui.plugin.item': {
+        'settings.plugin.item': {
             kind: 'list';
             scope: 'root';
             owner: SettingsPluginItemOwnerProps;
