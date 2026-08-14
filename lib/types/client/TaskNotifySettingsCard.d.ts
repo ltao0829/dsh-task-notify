@@ -7,7 +7,7 @@ import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots
 import { type TaskNotifySettings } from './settings.ts';
 export type { TaskNotifySettings };
 /** Props the renderer binds for the task-notify card. */
-export type TaskNotifySettingsCardProps = PropsRuntime<'web-ui.plugin.item'> & PropsLocale<'task-notify'>;
+export type TaskNotifySettingsCardProps = PropsRuntime<'settings.plugin.item'> & PropsLocale<'task-notify'>;
 /**
  * Render the task-notify card.
  * @param props - locale copy.

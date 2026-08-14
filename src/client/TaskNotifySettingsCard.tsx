@@ -13,7 +13,7 @@ import { requestBrowserNotificationPermission } from './notify.ts'
 export type { TaskNotifySettings }
 
 /** Props the renderer binds for the task-notify card. */
-export type TaskNotifySettingsCardProps = PropsRuntime<'web-ui.plugin.item'> & PropsLocale<'task-notify'>
+export type TaskNotifySettingsCardProps = PropsRuntime<'settings.plugin.item'> & PropsLocale<'task-notify'>
 
 interface RowSpec {
   key: keyof TaskNotifySettings
