@@ -7,9 +7,9 @@ DeepSeek Harness (DSH) Web 的任务完成提醒插件：当一轮对话任务�
 ## 安装
 
 ```sh
-dsh plugin --profile web add git+https://github.com/ltao0829/dsh-plugin.git
+dsh plugin --profile web add git+https://github.com/ltao0829/dsh-task-notify.git
 # 或本地开发：
-dsh plugin --profile web add link:/path/to/dsh-plugin
+dsh plugin --profile web add link:/path/to/dsh-task-notify
 ```
 
 安装后重启 `dsh web`，刷新页面。
