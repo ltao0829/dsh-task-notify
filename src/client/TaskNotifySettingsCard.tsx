@@ -25,6 +25,7 @@ const ROWS: RowSpec[] = [
   { key: 'enabled', label: 'settings.enabled', hint: 'settings.enabledHint' },
   { key: 'turn', label: 'settings.turn', hint: 'settings.turnHint' },
   { key: 'job', label: 'settings.job', hint: 'settings.jobHint' },
+  { key: 'review', label: 'settings.review', hint: 'settings.reviewHint' },
   { key: 'browser', label: 'settings.browser', hint: 'settings.browserHint' },
   { key: 'sound', label: 'settings.sound', hint: 'settings.soundHint' },
 ]

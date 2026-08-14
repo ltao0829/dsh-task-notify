@@ -18,6 +18,8 @@ export interface Config {
     turn?: boolean;
     /** Remind when a background job settles. */
     job?: boolean;
+    /** Remind when a session waits for review (approval / plan / question). */
+    review?: boolean;
     /** Also send a browser (OS-level) notification. */
     browser?: boolean;
     /** Also play a short beep. */
