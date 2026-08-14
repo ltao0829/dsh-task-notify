@@ -12,6 +12,8 @@ export declare const zh: {
     'settings.turnHint': string;
     'settings.job': string;
     'settings.jobHint': string;
+    'settings.review': string;
+    'settings.reviewHint': string;
     'settings.browser': string;
     'settings.browserHint': string;
     'settings.sound': string;
@@ -43,6 +45,8 @@ export declare const en: {
     'settings.turnHint': string;
     'settings.job': string;
     'settings.jobHint': string;
+    'settings.review': string;
+    'settings.reviewHint': string;
     'settings.browser': string;
     'settings.browserHint': string;
     'settings.sound': string;

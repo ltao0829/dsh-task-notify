@@ -12,6 +12,8 @@ export interface TaskNotifySettings {
   turn: boolean
   /** Remind when a background job settles. */
   job: boolean
+  /** Remind when a session waits for review (approval / plan / question). */
+  review: boolean
   /** Also send an OS-level browser notification. */
   browser: boolean
   /** Also play a short beep. */
@@ -24,6 +26,7 @@ const DEFAULTS: TaskNotifySettings = {
   enabled: true,
   turn: true,
   job: true,
+  review: true,
   browser: true,
   sound: false,
 }

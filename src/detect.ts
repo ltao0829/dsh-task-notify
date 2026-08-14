@@ -1,7 +1,8 @@
 /**
- * Pure completion detection — maps the sessions-list store into a minimal view
- * and diffs two consecutive views into "completion events". No DOM, no SDK
- * values: the view is plain data so this module unit-tests without a loader.
+ * Pure detection — maps the sessions-list store into a minimal view and diffs
+ * two consecutive views into events (turn done, job done, review needed).
+ * No DOM, no SDK values: the view is plain data so this module unit-tests
+ * without a loader.
  * @module @linxin666/dsh-task-notify/detect
  */
 
@@ -10,10 +11,14 @@ import type { SessionListState } from '@deepseek-ai/dsh-client-runtime/client'
 /** Job lifecycle states as seen on the wire. */
 export type JobStatus = 'running' | 'stopping' | 'completed' | 'killed' | 'failed'
 
+/** The user-action kinds that block a session waiting for review. */
+export type ReviewKind = 'approval' | 'plan-review' | 'question'
+
 /** Minimal per-session view (only what the detector needs). */
 export interface SessionRowView {
   running: boolean
   title?: string
+  pendingInteraction?: ReviewKind
 }
 
 /** Minimal per-job view (only what the detector needs). */
@@ -31,10 +36,11 @@ export interface SnapshotView {
   jobs: Record<string, JobRowView[]>
 }
 
-/** One settled transition observed between two snapshots. */
+/** One transition observed between two snapshots. */
 export type CompletionEvent =
   | { kind: 'turn'; sessionId: string; title?: string }
   | { kind: 'job'; sessionId: string; job: JobRowView }
+  | { kind: 'review'; sessionId: string; pending: ReviewKind; title?: string }
 
 /** Job states that count as "finished". */
 const SETTLED: ReadonlySet<JobStatus> = new Set(['completed', 'killed', 'failed'])
@@ -50,6 +56,7 @@ export function toSnapshotView(list: SessionListState): SnapshotView {
     sessions[id] = {
       running: row.running,
       ...(row.displayTitle === undefined ? {} : { title: row.displayTitle }),
+      ...(row.pendingInteraction === undefined ? {} : { pendingInteraction: row.pendingInteraction }),
     }
   }
   const jobs: Record<string, JobRowView[]> = {}
@@ -65,20 +72,24 @@ export function toSnapshotView(list: SessionListState): SnapshotView {
 }
 
 /**
- * Diff two snapshots into the completions that happened between them.
+ * Diff two snapshots into the events that happened between them.
  * A null previous snapshot (the first observation) yields nothing so that a
  * page load never fires reminders for every historically-settled task.
  * @param prev - the previous snapshot, or null on the first observation.
  * @param next - the latest snapshot.
- * @returns newly-settled turns and jobs, in stable iteration order.
+ * @returns newly-settled turns, jobs, and pending reviews.
  */
 export function diffCompletions(prev: SnapshotView | null, next: SnapshotView): CompletionEvent[] {
   if (prev === null) return []
   const events: CompletionEvent[] = []
   for (const [sessionId, row] of Object.entries(next.sessions)) {
     const before = prev.sessions[sessionId]
-    if (before !== undefined && before.running && !row.running) {
+    if (before === undefined) continue
+    if (before.running && !row.running) {
       events.push({ kind: 'turn', sessionId, ...(row.title === undefined ? {} : { title: row.title }) })
+    }
+    if (before.pendingInteraction === undefined && row.pendingInteraction !== undefined) {
+      events.push({ kind: 'review', sessionId, pending: row.pendingInteraction, ...(row.title === undefined ? {} : { title: row.title }) })
     }
   }
   for (const [sessionId, jobs] of Object.entries(next.jobs)) {

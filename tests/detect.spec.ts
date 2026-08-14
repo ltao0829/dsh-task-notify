@@ -1,16 +1,17 @@
 /**
- * Unit tests for the pure completion detector (diffCompletions).
+ * Unit tests for the pure detector (diffCompletions).
  * Plain-data only: no DOM, no SDK values, no module loader.
  */
 import { describe, expect, it } from 'vitest'
-import { diffCompletions, type SnapshotView } from '../src/detect.ts'
+import { diffCompletions, type ReviewKind, type SnapshotView } from '../src/detect.ts'
 
 type JobStatus = 'running' | 'stopping' | 'completed' | 'killed' | 'failed'
 
 interface JobInput { id: string; kind: string; label: string; status: JobStatus }
+interface SessionInput { running: boolean; title?: string; pendingInteraction?: ReviewKind }
 
 function view(
-  sessions: Record<string, { running: boolean; title?: string }>,
+  sessions: Record<string, SessionInput>,
   jobs: Record<string, JobInput[]> = {},
 ): SnapshotView {
   return { sessions, jobs }
@@ -99,5 +100,41 @@ describe('diffCompletions', () => {
     expect(events).toHaveLength(2)
     expect(events[0]).toEqual({ kind: 'turn', sessionId: 'a' })
     expect(events[1]).toEqual({ kind: 'job', sessionId: 'a', job: { id: 'subagent-1', kind: 'subagent', label: 'delegate', status: 'completed' } })
+  })
+
+  it('detects a pending review appearing', () => {
+    const prev = view({ a: { running: true, title: 'Deploy' } })
+    const next = view({ a: { running: true, title: 'Deploy', pendingInteraction: 'approval' } })
+    expect(diffCompletions(prev, next)).toEqual([
+      { kind: 'review', sessionId: 'a', pending: 'approval', title: 'Deploy' },
+    ])
+  })
+
+  it('detects each review kind', () => {
+    for (const kind of ['approval', 'plan-review', 'question'] as const) {
+      const prev = view({ a: { running: true } })
+      const next = view({ a: { running: true, pendingInteraction: kind } })
+      expect(diffCompletions(prev, next)).toEqual([
+        { kind: 'review', sessionId: 'a', pending: kind },
+      ])
+    }
+  })
+
+  it('does not fire review when pending stays the same', () => {
+    const prev = view({ a: { running: true, pendingInteraction: 'question' } })
+    const next = view({ a: { running: true, pendingInteraction: 'question' } })
+    expect(diffCompletions(prev, next)).toEqual([])
+  })
+
+  it('does not fire review when pending resolves', () => {
+    const prev = view({ a: { running: true, pendingInteraction: 'approval' } })
+    const next = view({ a: { running: true } })
+    expect(diffCompletions(prev, next)).toEqual([])
+  })
+
+  it('does not fire review for a session that was already pending at load', () => {
+    const prev = view({})
+    const next = view({ a: { running: true, pendingInteraction: 'approval' } })
+    expect(diffCompletions(prev, next)).toEqual([])
   })
 })

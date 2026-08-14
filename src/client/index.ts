@@ -86,6 +86,7 @@ export function apply(ctx: ClientContext): void {
     for (const event of events) {
       if (event.kind === 'turn' && !cfg.turn) continue
       if (event.kind === 'job' && !cfg.job) continue
+      if (event.kind === 'review' && !cfg.review) continue
       notifyEvent(event, {
         browser: cfg.browser,
         sound: cfg.sound,

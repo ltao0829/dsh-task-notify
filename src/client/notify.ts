@@ -6,7 +6,7 @@
  * @module @linxin666/dsh-task-notify/client/notify
  */
 
-import type { CompletionEvent } from '../detect.ts'
+import type { CompletionEvent, ReviewKind } from '../detect.ts'
 
 /** Notification channels the watcher may use (read from settings). */
 export interface NotifyOptions {
@@ -47,13 +47,23 @@ function ensureToastHost(): HTMLDivElement {
 
 /** Human title for one completion event. */
 function titleOf(event: CompletionEvent): string {
-  return event.kind === 'turn' ? '任务已完成' : '后台任务已完成'
+  if (event.kind === 'turn') return '任务已完成'
+  if (event.kind === 'job') return '后台任务已完成'
+  return '需要你的审核'
 }
 
 /** Human body for one completion event. */
 function bodyOf(event: CompletionEvent): string {
   if (event.kind === 'turn') return event.title ?? event.sessionId
-  return event.job.label === '' ? event.job.kind : event.job.kind + ': ' + event.job.label
+  if (event.kind === 'job') return event.job.label === '' ? event.job.kind : event.job.kind + ': ' + event.job.label
+  return (event.title ?? event.sessionId) + ' · ' + reviewKindLabel(event.pending)
+}
+
+/** Human label for a review kind. */
+function reviewKindLabel(kind: ReviewKind): string {
+  if (kind === 'approval') return '操作审批'
+  if (kind === 'plan-review') return '计划评审'
+  return '提问'
 }
 
 /** Fire every enabled channel for one completion event. */
