@@ -43,6 +43,11 @@ export type CompletionEvent = {
     sessionId: string;
     pending: ReviewKind;
     title?: string;
+} | {
+    kind: 'failure';
+    sessionId: string;
+    title?: string;
+    message: string;
 };
 /**
  * Map the runtime's SessionListState into the minimal detector view.

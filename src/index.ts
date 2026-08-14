@@ -24,6 +24,8 @@ export interface Config {
   job?: boolean
   /** Remind when a session waits for review (approval / plan / question). */
   review?: boolean
+  /** Remind when a turn or background job fails. */
+  failure?: boolean
   /** Also send a browser (OS-level) notification. */
   browser?: boolean
   /** Also play a short beep. */
@@ -36,6 +38,7 @@ export const Config: z<Config> = z.object({
   turn: z.boolean().default(true),
   job: z.boolean().default(true),
   review: z.boolean().default(true),
+  failure: z.boolean().default(true),
   browser: z.boolean().default(true),
   sound: z.boolean().default(false),
 })

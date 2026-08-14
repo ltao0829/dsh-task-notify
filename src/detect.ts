@@ -41,6 +41,7 @@ export type CompletionEvent =
   | { kind: 'turn'; sessionId: string; title?: string }
   | { kind: 'job'; sessionId: string; job: JobRowView }
   | { kind: 'review'; sessionId: string; pending: ReviewKind; title?: string }
+  | { kind: 'failure'; sessionId: string; title?: string; message: string }
 
 /** Job states that count as "finished". */
 const SETTLED: ReadonlySet<JobStatus> = new Set(['completed', 'killed', 'failed'])
