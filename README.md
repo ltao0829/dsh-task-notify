@@ -6,6 +6,8 @@ DeepSeek Harness (DSH) Web 的任务完成提醒插件：当一轮对话任务�
 
 ## 安装
 
+> 前提：本机需要先安装 pnpm（`dsh plugin` 底层调用 pnpm），可执行 `npm i -g pnpm`。
+
 ```sh
 dsh plugin --profile web add git+https://github.com/ltao0829/dsh-task-notify.git
 # 或本地开发：
@@ -13,6 +15,8 @@ dsh plugin --profile web add link:/path/to/dsh-task-notify
 ```
 
 安装后重启 `dsh web`，刷新页面。
+
+> 网络提示：git 安装需要能直连 github.com（国内网络可能要走代理）；发布到 npm 后可用 `dsh plugin --profile web add @linxin666/dsh-task-notify`，走 npm CDN 通常更稳。
 
 首次在页面里点击/按键时，浏览器会请求「通知」权限，点允许即可收到系统通知。
 
