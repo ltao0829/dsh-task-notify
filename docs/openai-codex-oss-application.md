@@ -10,7 +10,7 @@
 - [x] README 已重构：英文主版 `README.md` + 中文副版 `README.zh-CN.md`
 - [x] 测试已扩充到 4 个 spec / 27 个用例
 - [ ] Demo GIF 已放入 `docs/` 并替换 README 中的占位图
-- [ ] npm 已发布（可选，发布后才有 version/downloads badge）
+- [x] npm 已发布（`@ltao0829/dsh-task-notify@0.1.0`，latest tag）
 - [ ] 所有数字（stars / downloads / users 等）均已核实，不虚报
 
 ## 1. Role（你是谁）
