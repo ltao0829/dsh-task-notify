@@ -10,8 +10,12 @@ permissions:
 
 jobs:
   build:
-    name: typecheck + test + build
+    name: typecheck + test + build (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['20', '22']
     steps:
       - uses: actions/checkout@v4
 
@@ -20,7 +24,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: ${{ matrix.node-version }}
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -33,3 +37,9 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+      - name: Pack dry-run (verify publish tarball)
+        run: pnpm pack --dry-run
+
+      - name: Package/release metadata check
+        run: node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));if(!/^@[a-z0-9-]+\\/[a-z0-9-]+$/.test(p.name))throw new Error('package name must be scoped');for(const k of ['name','version','description','license','repository','files'])if(p[k]===undefined)throw new Error('missing '+k);console.log('metadata OK: '+p.name+'@'+p.version)"
