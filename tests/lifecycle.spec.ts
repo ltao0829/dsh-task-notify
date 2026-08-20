@@ -1,6 +1,6 @@
 /**
- * Lifecycle mapping tests: SessionListState → SnapshotView, plus an
- * end-to-end diff across a full lifecycle transition.
+ * Lifecycle mapping tests: SessionListState → SnapshotView, end-to-end diff,
+ * review transitions, failure classification, and event deduplication.
  */
 import { describe, expect, it } from 'vitest'
 import { diffCompletions, toSnapshotView } from '../src/detect.ts'
@@ -43,5 +43,65 @@ describe('lifecycle end-to-end', () => {
       { kind: 'review', sessionId: 'a', pending: 'approval', title: 'Deploy' },
       { kind: 'job', sessionId: 'a', job: { id: 'subagent-1', kind: 'subagent', label: 'delegate', status: 'completed' } },
     ])
+  })
+})
+
+describe('review lifecycle', () => {
+  it('appears, persists, and resolves without duplicate events', () => {
+    const s0 = toSnapshotView(list({ a: { running: true, displayTitle: 'Deploy' } }))
+    const s1 = toSnapshotView(list({ a: { running: true, displayTitle: 'Deploy', pendingInteraction: 'question' } }))
+    const s2 = toSnapshotView(list({ a: { running: true, displayTitle: 'Deploy', pendingInteraction: 'question' } }))
+    const s3 = toSnapshotView(list({ a: { running: true, displayTitle: 'Deploy' } }))
+    expect(diffCompletions(s0, s1)).toEqual([
+      { kind: 'review', sessionId: 'a', pending: 'question', title: 'Deploy' },
+    ])
+    expect(diffCompletions(s1, s2)).toEqual([])
+    expect(diffCompletions(s2, s3)).toEqual([])
+  })
+
+  it('does not re-fire when pending switches between review kinds', () => {
+    const s0 = toSnapshotView(list({ a: { running: true, pendingInteraction: 'approval' } }))
+    const s1 = toSnapshotView(list({ a: { running: true, pendingInteraction: 'plan-review' } }))
+    expect(diffCompletions(s0, s1)).toEqual([])
+  })
+})
+
+describe('failure classification', () => {
+  it('emits failure-classified job events (failed and killed)', () => {
+    const before = toSnapshotView(list(
+      { a: { running: true, displayTitle: 'Deploy' } },
+      { a: [{ id: 'pwsh-1', kind: 'pwsh', label: 'deploy', status: 'running' }] },
+    ))
+    for (const status of ['failed', 'killed'] as const) {
+      const after = toSnapshotView(list(
+        { a: { running: false, displayTitle: 'Deploy' } },
+        { a: [{ id: 'pwsh-1', kind: 'pwsh', label: 'deploy', status }] },
+      ))
+      const events = diffCompletions(before, after)
+      expect(events).toContainEqual({ kind: 'turn', sessionId: 'a', title: 'Deploy' })
+      expect(events).toContainEqual({ kind: 'job', sessionId: 'a', job: { id: 'pwsh-1', kind: 'pwsh', label: 'deploy', status } })
+    }
+  })
+})
+
+describe('deduplication', () => {
+  it('emits nothing for consecutive identical snapshots', () => {
+    const snap = toSnapshotView(list(
+      { a: { running: false, displayTitle: 'Done' } },
+      { a: [{ id: 'pwsh-1', kind: 'pwsh', label: 'ls', status: 'completed' }] },
+    ))
+    expect(diffCompletions(snap, snap)).toEqual([])
+  })
+
+  it('does not re-fire a job that was already settled', () => {
+    const prev = toSnapshotView(list({}, { a: [{ id: 'pwsh-1', kind: 'pwsh', label: 'ls', status: 'completed' }] }))
+    const next = toSnapshotView(list({}, { a: [{ id: 'pwsh-1', kind: 'pwsh', label: 'ls', status: 'completed' }] }))
+    expect(diffCompletions(prev, next)).toEqual([])
+  })
+
+  it('does not re-fire a running job that stays running', () => {
+    const prev = toSnapshotView(list({}, { a: [{ id: 'pwsh-1', kind: 'pwsh', label: 'ls', status: 'running' }] }))
+    const next = toSnapshotView(list({}, { a: [{ id: 'pwsh-1', kind: 'pwsh', label: 'ls', status: 'running' }] }))
+    expect(diffCompletions(prev, next)).toEqual([])
   })
 })

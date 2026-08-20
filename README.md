@@ -1,6 +1,6 @@
 # dsh-task-notify
 
-**Task lifecycle notifications for AI coding agents — currently supporting DeepSeek Harness.**
+**Lifecycle notification layer for AI coding agents, currently supporting DeepSeek Harness.**
 
 [![CI](https://github.com/ltao0829/dsh-task-notify/actions/workflows/ci.yml/badge.svg)](https://github.com/ltao0829/dsh-task-notify/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@ltao0829/dsh-task-notify)](https://www.npmjs.com/package/@ltao0829/dsh-task-notify)
@@ -8,7 +8,7 @@
 
 AI coding agents increasingly run long-lived, autonomous tasks: a turn can take minutes, and the human has usually moved to another window. This project adds the missing **notification layer** on top of an agent's task lifecycle, so the moment an agent **completes**, **fails**, settles a **background job**, or starts **waiting for a human** (approval / plan review / question), you get an in-page toast, an OS-level desktop notification, and an optional sound.
 
-> **Inspired by Codex's desktop-notification UX — not a Codex integration.** Today the project ships as a DeepSeek Harness (DSH) plugin. Its lifecycle-detection core is host-agnostic and is designed to grow into adapters for other coding agents.
+> **Inspired by Codex's desktop-notification UX — not a Codex integration. Not affiliated with or sponsored by OpenAI.** Today the project ships as a DeepSeek Harness (DSH) plugin. Its lifecycle-detection core is host-agnostic and is designed to grow into adapters for other coding agents.
 
 ## Why this exists
 
@@ -36,11 +36,11 @@ Long-running agent tasks invert the normal attention model: instead of watching 
 Prerequisites: [Node.js](https://nodejs.org) and [pnpm](https://pnpm.io).
 
 ```sh
-# from Git
-dsh plugin --profile web add git+https://github.com/ltao0829/dsh-task-notify.git
-
-# from npm (once published)
+# npm (recommended)
 dsh plugin --profile web add @ltao0829/dsh-task-notify
+
+# or from Git
+dsh plugin --profile web add git+https://github.com/ltao0829/dsh-task-notify.git
 ```
 
 Restart `dsh web` and refresh the page. On the first click/keypress the browser asks for notification permission — allow it to receive desktop notifications.
@@ -59,20 +59,30 @@ The settings card lives in the plugin section of DSH's settings UI. Values are s
 | Browser notification | on | also send an OS-level notification (needs permission) |
 | Sound | off | also play a short beep |
 
-## How it works
-
-The watcher subscribes to the DSH sessions-list store and diffs consecutive snapshots. Detection is a **pure function** (`src/detect.ts`) that maps a snapshot into a minimal view and emits lifecycle events; the notification dispatcher then routes each event to the enabled channels.
+## Architecture
 
 ```text
-sessions store:  snapshot N-1 ──┐
-                                ├── diff ──► lifecycle events
-sessions store:  snapshot N   ──┘            turn | job | review | failure
-                                                      │
-                                        notification dispatcher
-                                    ┌───────────┬───────────┐
-                                    ▼           ▼           ▼
-                                  toast    OS notification  sound
+              coding agent
+                   │
+                   ▼
+     host adapter  (DeepSeek Harness today;
+                   Claude Code / Codex / OpenCode later)
+                   │
+                   ▼
+   sessions snapshot (N-1 vs N)
+                   │
+                   ▼
+   lifecycle detector  ──►  events: turn | job | review | failure
+                   │
+                   ▼
+   notification dispatcher
+         │          │          │
+         ▼          ▼          ▼
+       OS          toast      sound
+   notification
 ```
+
+The detector (`src/detect.ts`) is a **pure function**: a snapshot goes in, lifecycle events come out. It knows nothing about DSH or the DOM, which is what makes additional coding-agent adapters a matter of implementing a new snapshot provider rather than rewriting the notification core.
 
 - The **first snapshot only establishes a baseline** — refreshing the page never replays history.
 - `src/detect.ts` is host-agnostic (plain data in / plain data out) and is unit-tested in isolation.
@@ -86,7 +96,7 @@ src/client/index.ts                  browser half — watcher + failure watcher
 src/client/notify.ts                 toast / OS notification / sound
 src/client/settings.ts               localStorage-backed settings store
 src/client/TaskNotifySettingsCard.tsx settings UI card
-tests/detect.spec.ts                 unit tests for the detector
+tests/*.spec.ts                      detector, settings, notification, lifecycle tests
 ```
 
 ## Security & Privacy
@@ -107,10 +117,15 @@ The plugin runs with the permissions of your DSH process, like any other DSH plu
 - [x] Approval / plan-review / question notifications
 - [x] Failure notifications
 - [x] OS notification + toast + sound
-- [ ] npm distribution and download metrics
+- [x] npm distribution (`@ltao0829/dsh-task-notify`)
+- [ ] npm download metrics / adoption tracking
 - [ ] Host-agnostic lifecycle interface (split the detection core from the DSH adapter)
 - [ ] Additional coding-agent adapters (Claude Code, Codex, OpenCode, …)
 - [ ] Cross-platform notification backends
+
+## Contributing
+
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ## Development
 
