@@ -17,7 +17,7 @@ jobs:
       matrix:
         node-version: ['20', '22']
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v4
         # pnpm version is read from the "packageManager" field in package.json
