@@ -1,6 +1,7 @@
 {
   "name": "@linxin666/dsh-task-notify",
   "version": "0.1.0",
+  "packageManager": "pnpm@11.22.0",
   "description": "Task-completion reminder for DeepSeek Harness: in-page toast, OS notification, and sound when an agent turn or background job finishes",
   "type": "module",
   "main": "lib/index.js",
@@ -77,6 +78,9 @@
     "src",
     "cordis.patch.yml"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/ltao0829/dsh-task-notify.git"
