@@ -42,4 +42,4 @@ jobs:
         run: pnpm pack --dry-run
 
       - name: Package/release metadata check
-        run: node -e "const fs=require('fs');const p=JSON.parse(fs.readFileSync('package.json','utf8'));if(!/^@[a-z0-9-]+\\/[a-z0-9-]+$/.test(p.name))throw new Error('package name must be scoped');for(const k of ['name','version','description','license','repository','files'])if(p[k]===undefined)throw new Error('missing '+k);console.log('metadata OK: '+p.name+'@'+p.version)"
+        run: node scripts/check-package.cjs
