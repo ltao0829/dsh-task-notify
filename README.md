@@ -3,7 +3,7 @@
 **Task lifecycle notifications for AI coding agents — currently supporting DeepSeek Harness.**
 
 [![CI](https://github.com/ltao0829/dsh-task-notify/actions/workflows/ci.yml/badge.svg)](https://github.com/ltao0829/dsh-task-notify/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/@linxin666/dsh-task-notify)](https://www.npmjs.com/package/@linxin666/dsh-task-notify)
+[![npm version](https://img.shields.io/npm/v/@ltao0829/dsh-task-notify)](https://www.npmjs.com/package/@ltao0829/dsh-task-notify)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](./LICENSE)
 
 AI coding agents increasingly run long-lived, autonomous tasks: a turn can take minutes, and the human has usually moved to another window. This project adds the missing **notification layer** on top of an agent's task lifecycle, so the moment an agent **completes**, **fails**, settles a **background job**, or starts **waiting for a human** (approval / plan review / question), you get an in-page toast, an OS-level desktop notification, and an optional sound.
@@ -40,7 +40,7 @@ Prerequisites: [Node.js](https://nodejs.org) and [pnpm](https://pnpm.io).
 dsh plugin --profile web add git+https://github.com/ltao0829/dsh-task-notify.git
 
 # from npm (once published)
-dsh plugin --profile web add @linxin666/dsh-task-notify
+dsh plugin --profile web add @ltao0829/dsh-task-notify
 ```
 
 Restart `dsh web` and refresh the page. On the first click/keypress the browser asks for notification permission — allow it to receive desktop notifications.

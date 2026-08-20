@@ -3,7 +3,7 @@
  * two consecutive views into events (turn done, job done, review needed).
  * No DOM, no SDK values: the view is plain data so this module unit-tests
  * without a loader.
- * @module @linxin666/dsh-task-notify/detect
+ * @module @ltao0829/dsh-task-notify/detect
  */
 
 import type { SessionListState } from '@deepseek-ai/dsh-client-runtime/client'
