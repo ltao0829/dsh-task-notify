@@ -5,9 +5,10 @@
 
 ## 提交前 checklist
 
-- [ ] CI 已就绪（`.github/workflows/ci.yml`）且 badge 变绿
-- [ ] 已创建 GitHub Release `v0.1.0`（见 `CHANGELOG.md`）
-- [ ] README 已重构：英文主版 `README.md` + 中文副版 `README.zh-CN.md`
+- [x] CI 已就绪（`.github/workflows/ci.yml`）且 badge 变绿（已通过）
+- [x] 已创建 GitHub Release `v0.1.0`（见 `CHANGELOG.md`）
+- [x] README 已重构：英文主版 `README.md` + 中文副版 `README.zh-CN.md`
+- [x] 测试已扩充到 4 个 spec / 27 个用例
 - [ ] Demo GIF 已放入 `docs/` 并替换 README 中的占位图
 - [ ] npm 已发布（可选，发布后才有 version/downloads badge）
 - [ ] 所有数字（stars / downloads / users 等）均已核实，不虚报
