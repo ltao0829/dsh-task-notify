@@ -112,16 +112,34 @@ The plugin runs with the permissions of your DSH process, like any other DSH plu
 
 ## Roadmap
 
+### Current
+
 - [x] Turn-completion notifications
 - [x] Background-job notifications
 - [x] Approval / plan-review / question notifications
 - [x] Failure notifications
 - [x] OS notification + toast + sound
 - [x] npm distribution (`@ltao0829/dsh-task-notify`)
+- [x] CI/CD (typecheck + test + build + pack dry-run)
+
+### Near term
+
 - [ ] npm download metrics / adoption tracking
-- [ ] Host-agnostic lifecycle interface (split the detection core from the DSH adapter)
+- [ ] Cross-platform notification backend
+- [ ] Notification customization
+- [ ] Better test coverage
+
+### Long term
+
+- [ ] Agent-agnostic lifecycle API
 - [ ] Additional coding-agent adapters (Claude Code, Codex, OpenCode, …)
-- [ ] Cross-platform notification backends
+- [ ] Reusable notification core
+
+## Related projects
+
+- [dsh-launcher](https://github.com/ltao0829/dsh-launcher) — one-click launcher for DeepSeek Harness Web.
+
+Together these form a small suite of tooling for AI coding-agent workflows.
 
 ## Contributing
 

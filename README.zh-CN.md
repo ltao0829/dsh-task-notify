@@ -111,16 +111,34 @@ tests/*.spec.ts                      检测器、设置、通知、生命周期�
 
 ## 路线图
 
+### 当前阶段
+
 - [x] 对话任务完成通知
 - [x] 后台任务通知
 - [x] 审批 / 计划评审 / 提问通知
 - [x] 失败通知
 - [x] 系统通知 + toast + 提示音
 - [x] npm 正式发布（`@ltao0829/dsh-task-notify`）
+- [x] CI/CD（typecheck + test + build + pack dry-run）
+
+### 近期
+
 - [ ] npm 下载量 / 采用度跟踪
-- [ ] 宿主无关的生命周期接口（把检测核心与 DSH 适配器解耦）
-- [ ] 更多编程代理适配器（Claude Code、Codex、OpenCode……）
 - [ ] 跨平台通知后端
+- [ ] 通知自定义
+- [ ] 更完善的测试覆盖
+
+### 长期
+
+- [ ] 与代理无关的生命周期 API
+- [ ] 更多编程代理集成（Claude Code、Codex、OpenCode……）
+- [ ] 可复用的通知核心
+
+## 相关项目
+
+- [dsh-launcher](https://github.com/ltao0829/dsh-launcher) —— DeepSeek Harness Web 的一键启动器。
+
+两者共同构成一套面向 AI 编程代理工作流的小型工具集。
 
 ## 贡献
 
