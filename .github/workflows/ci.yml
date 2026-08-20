@@ -10,12 +10,8 @@ permissions:
 
 jobs:
   build:
-    name: typecheck + test + build (Node ${{ matrix.node-version }})
+    name: typecheck + test + build
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        node-version: ['20', '22']
     steps:
       - uses: actions/checkout@v4
 
@@ -24,8 +20,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: pnpm
+          node-version: '22'
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
