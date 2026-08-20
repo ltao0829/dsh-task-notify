@@ -3,7 +3,7 @@
 **AI 编程代理的任务生命周期通知层 —— 当前支持 DeepSeek Harness（DSH）。**
 
 [![CI](https://github.com/ltao0829/dsh-task-notify/actions/workflows/ci.yml/badge.svg)](https://github.com/ltao0829/dsh-task-notify/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/@linxin666/dsh-task-notify)](https://www.npmjs.com/package/@linxin666/dsh-task-notify)
+[![npm version](https://img.shields.io/npm/v/@ltao0829/dsh-task-notify)](https://www.npmjs.com/package/@ltao0829/dsh-task-notify)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](./LICENSE)
 
 AI 编程代理越来越多地运行长时间、自主的任务：一轮任务可能持续数分钟，而用户通常已经切到别的窗口。本项目在代理任务生命周期之上补上了缺失的**通知层**：当代理**完成**、**失败**、**后台任务结束**、或开始**等待人工介入**（审批 / 计划评审 / 提问）时，立即通过页面 toast、操作系统级桌面通知以及可选提示音提醒你。
@@ -40,7 +40,7 @@ AI 编程代理越来越多地运行长时间、自主的任务：一轮任务�
 dsh plugin --profile web add git+https://github.com/ltao0829/dsh-task-notify.git
 
 # 发布到 npm 后（推荐，走 CDN 更稳）
-dsh plugin --profile web add @linxin666/dsh-task-notify
+dsh plugin --profile web add @ltao0829/dsh-task-notify
 ```
 
 重启 `dsh web` 并刷新页面。首次在页面里点击/按键时，浏览器会请求「通知」权限，点允许即可收到系统通知。

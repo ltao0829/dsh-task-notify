@@ -5,7 +5,7 @@
  * dictionaries and an always-visible settings card into the Web UI plugin
  * group. Settings live in localStorage, so nothing depends on the host
  * settings surface.
- * @module @linxin666/dsh-task-notify/client
+ * @module @ltao0829/dsh-task-notify/client
  */
 import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client';
 import { type SettingsCardKey } from './locales.ts';

@@ -3,7 +3,7 @@
  * (OS-level) notification and a short Web Audio beep. No React and no slot
  * dependency: the toast mounts directly on document.body so the reminder works
  * even on screens without a conversation slot (no session selected).
- * @module @linxin666/dsh-task-notify/client/notify
+ * @module @ltao0829/dsh-task-notify/client/notify
  */
 
 import type { CompletionEvent, ReviewKind } from '../detect.ts'

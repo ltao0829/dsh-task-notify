@@ -1,7 +1,7 @@
 import { clientBundle } from './build/tsdown.client.ts'
 
 export default clientBundle(
-  '@linxin666/dsh-task-notify',
+  '@ltao0829/dsh-task-notify',
   ['src/index.ts'],
   {
     lib: {

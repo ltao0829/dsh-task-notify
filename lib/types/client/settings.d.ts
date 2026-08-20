@@ -2,7 +2,7 @@
  * Client-side settings store backed by localStorage. The reminder card and
  * watcher read/write here instead of the host settings namespace, so the card
  * always renders (no dependency on the settings surface being available).
- * @module @linxin666/dsh-task-notify/client/settings
+ * @module @ltao0829/dsh-task-notify/client/settings
  */
 export interface TaskNotifySettings {
     /** Master switch. */
