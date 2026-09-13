@@ -45,6 +45,7 @@ jobs:
         run: node scripts/check-package.cjs
 
       - name: Disposable Profile Verification
+        if: matrix.node-version == '22'
         run: |
           npm install -g @deepseek-ai/dsh
           pnpm run verify:profile
