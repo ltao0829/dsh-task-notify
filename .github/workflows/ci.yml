@@ -43,3 +43,8 @@ jobs:
 
       - name: Package/release metadata check
         run: node scripts/check-package.cjs
+
+      - name: Disposable Profile Verification
+        run: |
+          npm install -g @deepseek-ai/dsh
+          pnpm run verify:profile
