@@ -13,9 +13,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Additional coding-agent adapters (Claude Code, Codex, OpenCode, …)
 - Cross-platform notification backends
 
+## [0.1.1] - 2026-09-13
+
 ### Fixed
 
 - Register the settings card into the keyed `settings.plugin.item` slot with a `key` (the settings namespace) instead of a list-slot `id`. The previous wiring made the plugin fail to load with `keyed slot "settings.plugin.item" requires options.key` on dsh `0.1.1-rc.2` (#7).
+
+### Changed
+
+- Declare explicit DSH and Node.js compatibility under `dsh.compatibility` and `engines` in `package.json` for DSH Store catalog contract compliance.
 
 ## [0.1.0] - 2026-08-20
 
