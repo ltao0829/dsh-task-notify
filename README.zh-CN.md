@@ -147,7 +147,7 @@ tests/*.spec.ts                      检测器、设置、通知、生命周期�
 ## 兼容性与一次性 Profile 验证
 
 - **Node.js**：`>=20.0.0`（在 Node 20 及 Node 22/24 上均通过验证）
-- **DeepSeek Harness**：`>=0.1.0-rc.6 <0.2.0`，在包括 `0.1.5-alpha.2`、`0.1.5-rc.1` 与 `0.1.5-rc.2` 的官方版本上均声明并验证 compatible。
+- **DeepSeek Harness**：`>=0.1.0-rc.6 <0.2.0`。Manifest 已对 `0.1.5-alpha.2`、`0.1.5-rc.1` 与 `0.1.5-rc.2` 逐版本声明兼容状态；实际运行结果以单独生成的验证证据为准。
 
 ### 一次性 Profile 验证命令
 
@@ -156,6 +156,8 @@ tests/*.spec.ts                      检测器、设置、通知、生命周期�
 ```sh
 pnpm run verify:profile
 ```
+
+脚本默认等待 DSH 首次准备 Profile 最多 90 秒。如果 CI Runner 或本机需要调整，可将 `DSH_WEB_START_TIMEOUT_MS` 设置为正整数毫秒值。插件安装另有默认五分钟的等待限制，可通过 `DSH_PLUGIN_INSTALL_TIMEOUT_MS` 调整。
 
 验证日志证据报告：[`docs/verification-evidence.md`](./docs/verification-evidence.md)。
 

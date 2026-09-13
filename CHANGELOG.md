@@ -15,6 +15,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [0.1.2] - 2026-09-13
 
+### Fixed
+
+- Remove the obsolete host-side `installSettingsSection` integration, which is not exported by `@deepseek-ai/dsh-settings` in DSH `0.1.5`. Notification preferences remain browser-local as designed.
+- Make disposable-profile verification tolerate first-run setup time, probe the authenticated Web URL, report the actual HTTP status, surface pnpm failures, and always clean up the spawned process and temporary profile.
+
 ### Changed
 
 - Expand `@deepseek-ai/dsh-*` `peerDependencies` range to `>=0.1.0-rc.6 <0.2.0 || ^0.1.1-rc.1 || ^0.1.2-alpha.1 || ^0.1.3-alpha.1 || ^0.1.5-alpha.1 || ^0.1.5-rc.1` to align with declared DSH releases including `0.1.5-alpha.2`, `0.1.5-rc.1`, and `0.1.5-rc.2`.
