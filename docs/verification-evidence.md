@@ -5,13 +5,13 @@
 | 项目 | 内容 |
 |---|---|
 | 插件名称与版本 | `@ltao0829/dsh-task-notify@0.1.2` |
-| 固定 Commit | `d43a4bd86e4083089e004e28075d8b46e36cbef9` |
+| 固定 Commit | `df83e98904a7bd03def3773ee6186228e88f6af8 (working tree modified)` |
 | 验证结果 | **PASSED** |
-| 验证时间 | `2026-09-13T04:49:29.620Z` |
+| 验证时间 | `2026-09-13T05:43:17.401Z` |
 | Node.js 运行时 | `v24.18.0` (win32 x64) |
-| DSH 运行时版本 | `0.1.1-rc.2` |
+| DSH 运行时版本 | `0.1.5-rc.1` |
 | 隔离环境 | 临时 `DSH_HOME`，已在验证完成后彻底清理 |
-| 监听服务地址 | `http://127.0.0.1:9680` |
+| 监听服务地址 | `http://127.0.0.1:47974` |
 
 ## 2. 验证阶段与执行结果
 
@@ -32,8 +32,8 @@
 
 ### 阶段四：运行时启动与监听验收 (`dsh web`)
 - 命令：`dsh --profile web --no-open --port 0`
-- 运行结果：服务在 `http://127.0.0.1:9680` 正常启动并监听。
-- 探测结果：HTTP GET 响应状态码 200，无 `ERR_MODULE_NOT_FOUND`、entry key 或 bundle patch 错误。
+- 运行结果：服务在 `http://127.0.0.1:47974` 正常启动并监听。
+- 探测结果：HTTP GET 响应状态码 303，无 `ERR_MODULE_NOT_FOUND`、entry key 或 bundle patch 错误。
 
 ### 阶段五：卸载与清理 (`dsh plugin remove`)
 - 命令：`dsh plugin --profile web remove @ltao0829/dsh-task-notify`

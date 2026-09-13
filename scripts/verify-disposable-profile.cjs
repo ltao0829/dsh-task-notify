@@ -17,6 +17,17 @@ const http = require('node:http');
 const isWin = process.platform === 'win32';
 const dshBin = isWin ? 'dsh.cmd' : 'dsh';
 const pnpmBin = isWin ? 'pnpm.cmd' : 'pnpm';
+const webStartTimeoutMs = Number.parseInt(process.env.DSH_WEB_START_TIMEOUT_MS || '90000', 10);
+const pluginInstallTimeoutMs = Number.parseInt(process.env.DSH_PLUGIN_INSTALL_TIMEOUT_MS || '300000', 10);
+
+for (const [name, value] of [
+  ['DSH_WEB_START_TIMEOUT_MS', webStartTimeoutMs],
+  ['DSH_PLUGIN_INSTALL_TIMEOUT_MS', pluginInstallTimeoutMs]
+]) {
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(`${name} must be a positive integer`);
+  }
+}
 
 function killProcessTree(child) {
   if (!child || !child.pid) return;
@@ -37,7 +48,9 @@ function killProcessTree(child) {
 
 function getHeadCommit() {
   try {
-    return execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
+    const head = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
+    const dirty = execSync('git status --porcelain', { encoding: 'utf8' }).trim().length > 0;
+    return dirty ? `${head} (working tree modified)` : head;
   } catch {
     return 'unknown';
   }
@@ -73,6 +86,7 @@ async function verifyDisposableProfile() {
   console.log(`\n1. Initialized isolated DSH_HOME: ${tempHome}`);
 
   let tarballPath = null;
+  let webServer = null;
   const executionLog = [];
 
   function record(step, command, exitCode, output) {
@@ -100,12 +114,17 @@ async function verifyDisposableProfile() {
     const addRes = spawnSync(dshBin, ['plugin', '--profile', 'web', 'add', tarballPath], {
       env: { ...process.env, DSH_HOME: tempHome },
       shell: isWin,
-      encoding: 'utf8',
-      timeout: 90000
+      stdio: 'inherit',
+      timeout: pluginInstallTimeoutMs
     });
-    record('plugin-add', `${dshBin} plugin --profile web add ${tarballName}`, addRes.status, addRes.stdout + '\n' + addRes.stderr);
+    record('plugin-add', `${dshBin} plugin --profile web add ${tarballName}`, addRes.status, 'See terminal or CI log.');
     if (addRes.status !== 0) {
-      throw new Error(`dsh plugin add failed (exit code ${addRes.status}):\n${addRes.stderr || addRes.stdout}`);
+      const cause = addRes.error
+        ? `${addRes.error.code || addRes.error.name}: ${addRes.error.message}\n`
+        : '';
+      throw new Error(
+        `dsh plugin add failed (exit code ${addRes.status}). ${cause}See the pnpm output above for the root cause.`
+      );
     }
     console.log('   Plugin added successfully to profile web');
 
@@ -136,16 +155,19 @@ async function verifyDisposableProfile() {
         env: { ...process.env, DSH_HOME: tempHome },
         shell: isWin
       });
+      webServer = server;
 
       const timeout = setTimeout(() => {
         killProcessTree(server);
-        reject(new Error(`dsh web timed out waiting for listener after 20s. Output:\n${webServerOutput}`));
-      }, 20000);
+        reject(new Error(
+          `dsh web timed out waiting for listener after ${webStartTimeoutMs}ms. Output:\n${webServerOutput}`
+        ));
+      }, webStartTimeoutMs);
 
       server.stdout.on('data', (data) => {
         const text = data.toString();
         webServerOutput += text;
-        const match = text.match(/http:\/\/127\.0\.0\.1:\d+/);
+        const match = text.match(/http:\/\/127\.0\.0\.1:\d+\/?(?:\?token=[A-Za-z0-9_-]+)?/);
         if (match && !webUrl) {
           webUrl = match[0];
           clearTimeout(timeout);
@@ -170,20 +192,25 @@ async function verifyDisposableProfile() {
 
       server.on('close', (code) => {
         clearTimeout(timeout);
-        if (!webUrl && code !== 0) {
-          reject(new Error(`dsh web exited prematurely with code ${code}. Output:\n${webServerOutput}`));
+        if (!webUrl) {
+          reject(new Error(
+            `dsh web exited before reporting a listener URL (code ${code}). Output:\n${webServerOutput}`
+          ));
         }
       });
     });
 
     const { server, url } = await serverPromise;
-    console.log(`   dsh web started and listening on: ${url}`);
-    record('web-boot', `${dshBin} --profile web --no-open --port 0`, 0, `Listening: ${url}\n${webServerOutput.trim()}`);
+    const displayUrl = new URL(url).origin;
+    let httpStatus = null;
+    console.log(`   dsh web started and listening on: ${displayUrl}`);
+    record('web-boot', `${dshBin} --profile web --no-open --port 0`, 0, `Listening: ${displayUrl}`);
 
     // Verify root HTTP response
     await new Promise((resolve, reject) => {
       http.get(url, (res) => {
-        console.log(`   HTTP GET ${url} -> Status ${res.statusCode}`);
+        httpStatus = res.statusCode ?? null;
+        console.log(`   HTTP GET ${displayUrl} -> Status ${res.statusCode}`);
         if (res.statusCode >= 200 && res.statusCode < 400) {
           resolve();
         } else {
@@ -235,7 +262,8 @@ async function verifyDisposableProfile() {
       platform: `${process.platform} ${process.arch}`,
       dshVersion,
       tempHome,
-      webUrl,
+      webUrl: displayUrl,
+      httpStatus,
       executionLog,
       status: 'PASSED',
       timestamp: new Date().toISOString()
@@ -244,6 +272,10 @@ async function verifyDisposableProfile() {
 
   } finally {
     // 9. Clean up temporary files
+    if (webServer) {
+      killProcessTree(webServer);
+      webServer = null;
+    }
     if (tarballPath && fs.existsSync(tarballPath)) {
       try { fs.unlinkSync(tarballPath); } catch {}
     }
@@ -290,7 +322,7 @@ function writeEvidenceReport(targetPath, data) {
 ### 阶段四：运行时启动与监听验收 (\`dsh web\`)
 - 命令：\`dsh --profile web --no-open --port 0\`
 - 运行结果：服务在 \`${data.webUrl}\` 正常启动并监听。
-- 探测结果：HTTP GET 响应状态码 200，无 \`ERR_MODULE_NOT_FOUND\`、entry key 或 bundle patch 错误。
+- 探测结果：HTTP GET 响应状态码 ${data.httpStatus}，无 \`ERR_MODULE_NOT_FOUND\`、entry key 或 bundle patch 错误。
 
 ### 阶段五：卸载与清理 (\`dsh plugin remove\`)
 - 命令：\`dsh plugin --profile web remove @ltao0829/dsh-task-notify\`

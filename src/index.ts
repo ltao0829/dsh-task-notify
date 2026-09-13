@@ -1,18 +1,15 @@
 /**
- * dsh-task-notify host half — registers the notification-preference settings
- * section so the browser half's settings card can read/write it through the
- * DSH settings surface. No host behavior beyond that: the completion watching
- * happens entirely in the browser (the client half subscribes to the sessions
- * list store and fires the reminder).
+ * dsh-task-notify host half. Notification settings and lifecycle watching live
+ * entirely in the browser; this entry only gives the bundle loader a stable
+ * host plugin while package.json wires the client half into the web runtime.
  * @module @ltao0829/dsh-task-notify
  */
 
 import type { Context } from '@deepseek-ai/cordis'
-import { installSettingsSection, settingsNamespace } from '@deepseek-ai/dsh-settings'
 import z from 'schemastery'
 
 /** Settings namespace of the task-notify capability (the client half spells the same raw string). */
-export const TASK_NOTIFY_SETTINGS_NAMESPACE = settingsNamespace('task-notify')
+export const TASK_NOTIFY_SETTINGS_NAMESPACE = 'task-notify'
 
 /** Plugin configuration (composition entry) — the settings section's base layer. */
 export interface Config {
@@ -46,18 +43,15 @@ export const Config: z<Config> = z.object({
 /** Stable cordis plugin name (matches cordis.patch.yml insert id). */
 export const name = 'task-notify'
 
-/** No required services: installSettingsSection resolves the settings service optionally. */
+/** No required host services. */
 export const inject = [] as const
 
 /**
- * Register the settings section that carries the notification preferences.
- * The browser half reads them through ctx.settingsScope.bind({namespace}).
+ * Host entrypoint retained for the DSH bundle loader. All behavior is provided
+ * by the browser half, whose settings are localStorage-backed.
  * @param ctx - host plugin context.
  * @param config - resolved plugin config (schema defaults applied by the loader).
  */
-export function apply(ctx: Context, config: Config = {}): void {
-  installSettingsSection(ctx, TASK_NOTIFY_SETTINGS_NAMESPACE, Config, config ?? {}, {
-    setSource: () => {},
-    onChange: () => {},
-  })
+export function apply(_ctx: Context, _config: Config = {}): void {
+  // Intentionally empty: package.json's dsh.client declaration mounts the UI.
 }

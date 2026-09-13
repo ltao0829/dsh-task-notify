@@ -148,7 +148,7 @@ See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 ## Compatibility & Disposable Profile Verification
 
 - **Node.js**: `>=20.0.0` (tested on Node 20 and Node 22/24)
-- **DeepSeek Harness**: `>=0.1.0-rc.6 <0.2.0`, verified compatible across official DSH releases including `0.1.5-alpha.2`, `0.1.5-rc.1`, and `0.1.5-rc.2`.
+- **DeepSeek Harness**: `>=0.1.0-rc.6 <0.2.0`. The manifest declares per-release compatibility for `0.1.5-alpha.2`, `0.1.5-rc.1`, and `0.1.5-rc.2`; runtime results are reported separately in the generated evidence.
 
 ### Isolated Verification Command
 
@@ -157,6 +157,11 @@ To verify plugin installation, configuration composition, web service startup, a
 ```sh
 pnpm run verify:profile
 ```
+
+The check waits up to 90 seconds for first-time DSH profile preparation. Set
+`DSH_WEB_START_TIMEOUT_MS` to a positive millisecond value when a runner needs
+a different limit. Plugin installation has a separate five-minute default,
+configurable with `DSH_PLUGIN_INSTALL_TIMEOUT_MS`.
 
 Evidence report: [`docs/verification-evidence.md`](./docs/verification-evidence.md).
 

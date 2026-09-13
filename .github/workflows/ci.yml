@@ -48,3 +48,11 @@ jobs:
         run: |
           npm install -g @deepseek-ai/dsh
           pnpm run verify:profile
+
+      - name: Upload disposable profile evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: disposable-profile-evidence-node-${{ matrix.node-version }}
+          path: docs/verification-evidence.md
+          if-no-files-found: ignore
