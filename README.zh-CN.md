@@ -144,6 +144,23 @@ tests/*.spec.ts                      检测器、设置、通知、生命周期�
 
 见 [`CONTRIBUTING.md`](./CONTRIBUTING.md)。
 
+## 兼容性与一次性 Profile 验证
+
+- **Node.js**：`>=20.0.0`（在 Node 20 及 Node 22/24 上均通过验证）
+- **DeepSeek Harness**：`>=0.1.0-rc.6 <0.2.0`，在包括 `0.1.5-alpha.2`、`0.1.5-rc.1` 与 `0.1.5-rc.2` 的官方版本上均声明并验证 compatible。
+
+### 一次性 Profile 验证命令
+
+在不污染任何现有用户配置（`~/.dsh`）的隔离临时 Profile 中，验证插件安装、配置合成、Web 启动监听与卸载：
+
+```sh
+pnpm run verify:profile
+```
+
+验证日志证据报告：[`docs/verification-evidence.md`](./docs/verification-evidence.md)。
+
+> **限制与边界说明**：Catalog 准入及一次性 Profile 验收证明插件生命周期契约与标准 Web Profile 启动兼容；系统级操作系统通知依然依赖用户在浏览器前端授予通知权限。
+
 ## 开发
 
 ```sh
@@ -151,6 +168,7 @@ pnpm install
 pnpm run typecheck
 pnpm test
 pnpm run build
+pnpm run verify:profile
 ```
 
 ## License

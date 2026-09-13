@@ -13,6 +13,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 - Additional coding-agent adapters (Claude Code, Codex, OpenCode, …)
 - Cross-platform notification backends
 
+## [0.1.2] - 2026-09-13
+
+### Changed
+
+- Expand `@deepseek-ai/dsh-*` `peerDependencies` range to `>=0.1.0-rc.6 <0.2.0 || ^0.1.1-rc.1 || ^0.1.2-alpha.1 || ^0.1.3-alpha.1 || ^0.1.5-alpha.1 || ^0.1.5-rc.1` to align with declared DSH releases including `0.1.5-alpha.2`, `0.1.5-rc.1`, and `0.1.5-rc.2`.
+- Update `pnpm-lock.yaml` with aligned peerDependencies.
+
+### Added
+
+- Add disposable profile verification script (`scripts/verify-disposable-profile.cjs`) and integrate `verify:profile` into CI workflow.
+- Add verification evidence report (`docs/verification-evidence.md`).
+
 ## [0.1.1] - 2026-09-13
 
 ### Fixed
