@@ -140,6 +140,8 @@ tests/*.spec.ts                      检测器、设置、通知、生命周期�
 
 两者共同构成一套面向 AI 编程代理工作流的小型工具集。
 
+同一作者的另一个项目：[buaa-auto-auth](https://github.com/ltao0829/buaa-auto-auth) —— 为一台 Windows 机器每天自动完成校园网（SRun）认证。
+
 ## 贡献
 
 见 [`CONTRIBUTING.md`](./CONTRIBUTING.md)。
