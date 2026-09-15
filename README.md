@@ -141,6 +141,8 @@ The plugin runs with the permissions of your DSH process, like any other DSH plu
 
 Together these form a small suite of tooling for AI coding-agent workflows.
 
+Also from the same author: [buaa-auto-auth](https://github.com/ltao0829/buaa-auto-auth) — daily campus-network (SRun) re-authentication for one Windows machine.
+
 ## Contributing
 
 See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
