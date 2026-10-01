@@ -36,8 +36,8 @@ Long-running agent tasks invert the normal attention model: instead of watching 
 Prerequisites: [Node.js](https://nodejs.org) `>=22` and [pnpm](https://pnpm.io).
 
 ```sh
-# from npm
-dsh plugin --profile <profile> add @ltao0829/dsh-task-notify
+# from npm — name the range, see the cooldown note below
+dsh plugin --profile <profile> add @ltao0829/dsh-task-notify@^0.2.0
 
 # or from Git, pinned to a release tag
 dsh plugin --profile <profile> add git+https://github.com/ltao0829/dsh-task-notify.git#v0.2.0
@@ -46,6 +46,8 @@ dsh plugin --profile <profile> add git+https://github.com/ltao0829/dsh-task-noti
 `<profile>` is the DSH profile to install into — `web` for a `dsh web` server, `desktop` for the desktop app.
 
 > **Version and DSH line must match.** `0.2.x` requires **DeepSeek Harness 0.2**; on DSH 0.1.x install `0.1.2` instead. The two lines cannot be mixed in either direction: DSH 0.2's compatibility gate refuses the 0.1.x line outright, and DSH 0.1.x cannot load the 0.2.x line.
+
+> **Why the version range, not the bare name.** pnpm 11 ships a **24-hour supply-chain cooldown** (`minimumReleaseAge` defaults to `24 * 60` minutes). A version published less than a day ago is invisible to version resolution, so `dsh plugin add @ltao0829/dsh-task-notify` would silently resolve to the *previous* release and be rejected as incompatible. Naming a version or range makes pnpm record a `minimumReleaseAgeExclude` entry and install it straight away; the bare name starts resolving correctly once the release is a day old.
 
 Restart `dsh web` and refresh the page. On the first click/keypress the browser asks for notification permission — allow it to receive desktop notifications.
 

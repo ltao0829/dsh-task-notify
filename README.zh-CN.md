@@ -36,8 +36,8 @@ AI 编程代理越来越多地运行长时间、自主的任务：一轮任务�
 前置：先安装 [Node.js](https://nodejs.org) `>=22` 和 [pnpm](https://pnpm.io)。
 
 ```sh
-# 从 npm 安装
-dsh plugin --profile <profile> add @ltao0829/dsh-task-notify
+# 从 npm 安装 —— 请写明版本范围，原因见下方冷却期说明
+dsh plugin --profile <profile> add @ltao0829/dsh-task-notify@^0.2.0
 
 # 或从 Git 安装，锁定发布标签
 dsh plugin --profile <profile> add git+https://github.com/ltao0829/dsh-task-notify.git#v0.2.0
@@ -46,6 +46,8 @@ dsh plugin --profile <profile> add git+https://github.com/ltao0829/dsh-task-noti
 `<profile>` 是要装入的 DSH Profile：`dsh web` 服务器用 `web`，桌面端用 `desktop`。
 
 > **版本必须与 DSH 系列对应。** `0.2.x` 需要 **DeepSeek Harness 0.2**；若仍在 DSH 0.1.x，请安装 `0.1.2`。两个系列不能互相通用：DSH 0.2 的兼容性网关会直接拒绝 0.1.x 系列，而 DSH 0.1.x 也无法加载 0.2.x 系列。
+
+> **为什么要写版本范围而不是裸包名。** pnpm 11 内置了 **24 小时供应链冷却期**（`minimumReleaseAge` 默认为 `24 * 60` 分钟）。发布时间不足一天的版本对版本解析不可见，因此 `dsh plugin add @ltao0829/dsh-task-notify` 会静默解析到**上一个**发布版本，进而被判为不兼容而拒绝。写明版本或范围后，pnpm 会写入 `minimumReleaseAgeExclude` 并立即安装；等发布满一天后，裸包名也会正常解析到最新版。
 
 重启 `dsh web` 并刷新页面。首次在页面里点击/按键时，浏览器会请求「通知」权限，点允许即可收到系统通知。
 
