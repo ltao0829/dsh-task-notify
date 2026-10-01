@@ -33,15 +33,18 @@ Long-running agent tasks invert the normal attention model: instead of watching 
 
 ## Install
 
-Prerequisites: [Node.js](https://nodejs.org) and [pnpm](https://pnpm.io).
+Prerequisites: [Node.js](https://nodejs.org) `>=22` and [pnpm](https://pnpm.io).
 
 ```sh
-# npm (recommended)
-dsh plugin --profile web add @ltao0829/dsh-task-notify
-
-# or from Git
-dsh plugin --profile web add git+https://github.com/ltao0829/dsh-task-notify.git
+# from Git, pinned to a release tag
+dsh plugin --profile <profile> add git+https://github.com/ltao0829/dsh-task-notify.git#v0.2.0
 ```
+
+`<profile>` is the DSH profile to install into — `web` for a `dsh web` server, `desktop` for the desktop app.
+
+> **npm is behind.** The published `@ltao0829/dsh-task-notify@0.1.0` predates the DSH 0.2 re-target: DSH 0.2's compatibility gate refuses it, and it does not load if forced in. Use the tagged Git install above until `0.2.0` is published.
+
+> **Version and DSH line must match.** `0.2.x` requires **DeepSeek Harness 0.2**; on DSH 0.1.x install `0.1.2` instead.
 
 Restart `dsh web` and refresh the page. On the first click/keypress the browser asks for notification permission — allow it to receive desktop notifications.
 
