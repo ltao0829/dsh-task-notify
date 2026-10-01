@@ -1,44 +1,28 @@
 /**
- * dsh-task-notify browser half — subscribes to the sessions-list store and
- * fires a reminder (toast, optional OS notification, optional beep) whenever
- * an agent turn or a background job settles. Registers the locale
- * dictionaries and an always-visible settings card into the Web UI plugin
- * group. Settings live in localStorage, so nothing depends on the host
- * settings surface.
+ * dsh-task-notify browser half.
+ *
+ * DSH 0.2 replaced the single `sessions.list` store (which used to carry
+ * `jobsBySession` and a per-row `pendingInteraction`) with three independent
+ * sources, and this watcher reads all three:
+ *
+ * - `ctx.sessions.list` — the Session Controller catalog (ids, titles, the
+ *   Host baseline running flag);
+ * - `ctx.uiSession.sessionStatus` — the live Client status projection
+ *   (running, the pending interaction, the unread-completion flag);
+ * - `ctx.jobs.state` — the job-controller rosters, fed by one `job.list` stream
+ *   per watched Session.
+ *
+ * It registers the `task-notify` dictionaries and its settings page into the
+ * Plugins settings section, then diffs consecutive snapshots into reminders.
  * @module @ltao0829/dsh-task-notify/client
  */
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client';
-import { type SettingsCardKey } from './locales.ts';
+import type { Context } from '@deepseek-ai/cordis';
 export type { TaskNotifySettings } from './TaskNotifySettingsCard.tsx';
-declare module '@deepseek-ai/dsh-client-ui-slots' {
-    interface LocaleNamespaceMap {
-        /** task-notify settings-card copy. */
-        'task-notify': SettingsCardKey;
-    }
-    interface SlotMap {
-        /**
-         * The core plugin-configuration section slot, keyed by the settings
-         * namespace a card edits. Spelled here with the same shape so this package
-         * can register its card without depending on the package that declares the
-         * slot at runtime.
-         */
-        'settings.plugin.item': {
-            kind: 'keyed';
-            scope: 'root';
-            owner: SettingsPluginItemOwnerProps;
-        };
-    }
-}
-/** Owner share of a plugin card (the group card supplies nothing). */
-export interface SettingsPluginItemOwnerProps {
-    /** Marker field: card owner props are intentionally empty. */
-    children?: never;
-}
 /** Services required by this plugin. */
 export declare const inject: string[];
 /**
- * Register the reminder watcher and its settings card.
+ * Register the reminder watcher and its settings page.
  * @param ctx - client root context.
  */
-export declare function apply(ctx: ClientContext): void;
+export declare function apply(ctx: Context): void;
 //# sourceMappingURL=index.d.ts.map

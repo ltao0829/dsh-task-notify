@@ -1,12 +1,18 @@
 /**
  * Reminder rendering — a self-contained DOM toast plus optional browser
- * (OS-level) notification and a short Web Audio beep. No React and no slot
- * dependency: the toast mounts directly on document.body so the reminder works
- * even on screens without a conversation slot (no session selected).
+ * (OS-level) notification and a short Web Audio beep.
+ *
+ * No React and no slot dependency: the toast mounts directly on document.body
+ * so a reminder still works on screens with no Conversation seat (no Session
+ * selected, settings panel open, and so on). DSH 0.2 exposes a `shell.overlay`
+ * seat for frame-wide floating layers, but that seat is Session-agnostic only
+ * in principle — occupying it costs a React root and a slot registration for
+ * what is a transient, dismissable banner.
  * @module @ltao0829/dsh-task-notify/client/notify
  */
 
-import type { CompletionEvent, ReviewKind } from '../detect.ts'
+import type { CompletionEvent } from '../detect.ts'
+import type { TaskNotifyTranslate } from './locales.ts'
 
 /** Notification channels the watcher may use (read from settings). */
 export interface NotifyOptions {
@@ -46,36 +52,48 @@ function ensureToastHost(): HTMLDivElement {
 }
 
 /** Human title for one completion event. */
-function titleOf(event: CompletionEvent): string {
-  if (event.kind === 'turn') return '任务已完成'
+function titleOf(event: CompletionEvent, t: TaskNotifyTranslate): string {
+  if (event.kind === 'turn') return t('event.turn')
   if (event.kind === 'job') {
-    if (event.job.status === 'failed') return '后台任务失败'
-    if (event.job.status === 'killed') return '后台任务被终止'
-    return '后台任务已完成'
+    if (event.job.status === 'failed') return t('event.jobFailed')
+    if (event.job.status === 'killed') return t('event.jobKilled')
+    return t('event.jobCompleted')
   }
-  if (event.kind === 'review') return '需要你的审核'
-  return '任务失败'
+  if (event.kind === 'review') return t('event.review')
+  return t('event.failure')
 }
 
 /** Human body for one completion event. */
-function bodyOf(event: CompletionEvent): string {
+function bodyOf(event: CompletionEvent, t: TaskNotifyTranslate): string {
   if (event.kind === 'turn') return event.title ?? event.sessionId
   if (event.kind === 'job') return event.job.label === '' ? event.job.kind : event.job.kind + ': ' + event.job.label
-  if (event.kind === 'review') return (event.title ?? event.sessionId) + ' · ' + reviewKindLabel(event.pending)
+  if (event.kind === 'review') return (event.title ?? event.sessionId) + ' · ' + reviewKindLabel(event.pending, t)
   return (event.title ?? event.sessionId) + (event.message === '' ? '' : ' · ' + event.message)
 }
 
-/** Human label for a review kind. */
-function reviewKindLabel(kind: ReviewKind): string {
-  if (kind === 'approval') return '操作审批'
-  if (kind === 'plan-review') return '计划评审'
-  return '提问'
+/**
+ * Human label for a pending-interaction kind.
+ *
+ * The kind is a domain-owned open string (ui-approval, ui-plan,
+ * ui-user-questions each merge their own), so an unrecognized domain falls back
+ * to the wire word rather than to a wrong translation.
+ * @param kind - the pending interaction's domain discriminator.
+ * @param t - namespace-bound translate.
+ * @returns display text.
+ */
+function reviewKindLabel(kind: string, t: TaskNotifyTranslate): string {
+  if (kind === 'approval') return t('review.approval')
+  if (kind === 'plan-review') return t('review.planReview')
+  if (kind === 'question') return t('review.question')
+  return kind
 }
 
 /** Fire every enabled channel for one completion event. */
-export function notifyEvent(event: CompletionEvent, options: NotifyOptions): void {
-  showToast(titleOf(event), bodyOf(event))
-  if (options.browser) showBrowserNotification(titleOf(event), bodyOf(event))
+export function notifyEvent(event: CompletionEvent, options: NotifyOptions, t: TaskNotifyTranslate): void {
+  const title = titleOf(event, t)
+  const body = bodyOf(event, t)
+  showToast(title, body)
+  if (options.browser) showBrowserNotification(title, body)
   if (options.sound) playSound()
 }
 
@@ -97,7 +115,9 @@ function showToast(title: string, body: string): void {
     'padding:10px 14px',
     'border:1px solid var(--dsw-alias-border-l2, #30363d)',
     'border-radius:10px',
-    'background:var(--dsw-alias-bg-layer-2, #161b22)',
+    // `--dsw-alias-label-tertiary` was dropped in DSH 0.2's theme token set;
+    // the tokens used here are all present in the 0.2 alias table.
+    'background:var(--dsw-alias-bg-overlay, #161b22)',
     'color:var(--dsw-alias-label-primary, #e6edf3)',
     'box-shadow:0 8px 24px rgba(0,0,0,0.35)',
     'font:13px/18px system-ui,-apple-system,Segoe UI,Roboto,sans-serif',
@@ -133,7 +153,7 @@ function showBrowserNotification(title: string, body: string): void {
 
 /**
  * Request browser-notification permission. Must be called from a user gesture
- * (the settings card save handler does this when the toggle is enabled).
+ * (the settings card's save handler does this when the toggle is enabled).
  * @returns the resulting permission state.
  */
 export function requestBrowserNotificationPermission(): Promise<NotificationPermission> {

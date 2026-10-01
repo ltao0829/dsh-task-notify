@@ -1,7 +1,7 @@
 /**
- * Client-side settings store backed by localStorage. The reminder card and
- * watcher read/write here instead of the host settings namespace, so the card
- * always renders (no dependency on the settings surface being available).
+ * Client-side settings store backed by localStorage. The reminder page and the
+ * watcher read/write here instead of a host settings namespace, so the page
+ * always renders and its values survive independently of the host config.
  * @module @ltao0829/dsh-task-notify/client/settings
  */
 export interface TaskNotifySettings {
@@ -11,6 +11,13 @@ export interface TaskNotifySettings {
     turn: boolean;
     /** Remind when a background job settles. */
     job: boolean;
+    /**
+     * Watch background jobs in every Session of the Host list.
+     *
+     * Off (the default) watches only Sessions that have been observed running
+     * since this page loaded, which bounds the number of `job.list` streams.
+     */
+    allSessions: boolean;
     /** Remind when a session waits for review (approval / plan / question). */
     review: boolean;
     /** Remind when a turn or background job fails. */

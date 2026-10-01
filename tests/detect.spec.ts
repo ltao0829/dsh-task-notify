@@ -3,12 +3,12 @@
  * Plain-data only: no DOM, no SDK values, no module loader.
  */
 import { describe, expect, it } from 'vitest'
-import { diffCompletions, type ReviewKind, type SnapshotView } from '../src/detect.ts'
+import { diffCompletions, isSettled, type JobRowView, type SnapshotView } from '../src/detect.ts'
 
-type JobStatus = 'running' | 'stopping' | 'completed' | 'killed' | 'failed'
+type JobStatus = JobRowView['status']
 
 interface JobInput { id: string; kind: string; label: string; status: JobStatus }
-interface SessionInput { running: boolean; title?: string; pendingInteraction?: ReviewKind }
+interface SessionInput { running: boolean; title?: string; pending?: { key: string; kind: string } }
 
 function view(
   sessions: Record<string, SessionInput>,
@@ -16,6 +16,20 @@ function view(
 ): SnapshotView {
   return { sessions, jobs }
 }
+
+function accept(key: string, kind: string): { key: string; kind: string } {
+  return { key, kind }
+}
+
+describe('isSettled', () => {
+  it('classifies exactly the terminal job states', () => {
+    expect(isSettled('completed')).toBe(true)
+    expect(isSettled('failed')).toBe(true)
+    expect(isSettled('killed')).toBe(true)
+    expect(isSettled('running')).toBe(false)
+    expect(isSettled('stopping')).toBe(false)
+  })
+})
 
 describe('diffCompletions', () => {
   it('yields nothing on the first observation (null previous)', () => {
@@ -72,6 +86,12 @@ describe('diffCompletions', () => {
     expect(diffCompletions(prev, next)).toEqual([])
   })
 
+  it('does not fire for a job whose roster appears only in the next snapshot', () => {
+    const prev = view({})
+    const next = view({}, { s: [{ id: 'pwsh-1', kind: 'pwsh', label: 'ls', status: 'running' }] })
+    expect(diffCompletions(prev, next)).toEqual([])
+  })
+
   it('tracks jobs per session by stable id', () => {
     const prev = view({}, {
       s1: [{ id: 'pwsh-1', kind: 'pwsh', label: 'a', status: 'running' }],
@@ -104,37 +124,53 @@ describe('diffCompletions', () => {
 
   it('detects a pending review appearing', () => {
     const prev = view({ a: { running: true, title: 'Deploy' } })
-    const next = view({ a: { running: true, title: 'Deploy', pendingInteraction: 'approval' } })
+    const next = view({ a: { running: true, title: 'Deploy', pending: accept('req-1', 'approval') } })
     expect(diffCompletions(prev, next)).toEqual([
       { kind: 'review', sessionId: 'a', pending: 'approval', title: 'Deploy' },
     ])
   })
 
   it('detects each review kind', () => {
-    for (const kind of ['approval', 'plan-review', 'question'] as const) {
+    for (const kind of ['approval', 'plan-review', 'question']) {
       const prev = view({ a: { running: true } })
-      const next = view({ a: { running: true, pendingInteraction: kind } })
+      const next = view({ a: { running: true, pending: accept('req-' + kind, kind) } })
       expect(diffCompletions(prev, next)).toEqual([
         { kind: 'review', sessionId: 'a', pending: kind },
       ])
     }
   })
 
-  it('does not fire review when pending stays the same', () => {
-    const prev = view({ a: { running: true, pendingInteraction: 'question' } })
-    const next = view({ a: { running: true, pendingInteraction: 'question' } })
+  it('carries an unrecognized review kind through verbatim', () => {
+    const prev = view({ a: { running: true } })
+    const next = view({ a: { running: true, pending: accept('req-9', 'vendor-gate') } })
+    expect(diffCompletions(prev, next)).toEqual([
+      { kind: 'review', sessionId: 'a', pending: 'vendor-gate' },
+    ])
+  })
+
+  it('does not fire review when the same request is re-published', () => {
+    const prev = view({ a: { running: true, pending: accept('req-1', 'question') } })
+    const next = view({ a: { running: true, pending: accept('req-1', 'question') } })
     expect(diffCompletions(prev, next)).toEqual([])
   })
 
+  it('fires again when a replacement request takes over the seat', () => {
+    const prev = view({ a: { running: true, pending: accept('req-1', 'approval') } })
+    const next = view({ a: { running: true, pending: accept('req-2', 'question') } })
+    expect(diffCompletions(prev, next)).toEqual([
+      { kind: 'review', sessionId: 'a', pending: 'question' },
+    ])
+  })
+
   it('does not fire review when pending resolves', () => {
-    const prev = view({ a: { running: true, pendingInteraction: 'approval' } })
+    const prev = view({ a: { running: true, pending: accept('req-1', 'approval') } })
     const next = view({ a: { running: true } })
     expect(diffCompletions(prev, next)).toEqual([])
   })
 
   it('does not fire review for a session that was already pending at load', () => {
     const prev = view({})
-    const next = view({ a: { running: true, pendingInteraction: 'approval' } })
+    const next = view({ a: { running: true, pending: accept('req-1', 'approval') } })
     expect(diffCompletions(prev, next)).toEqual([])
   })
 })

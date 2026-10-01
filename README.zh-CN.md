@@ -47,13 +47,14 @@ dsh plugin --profile web add git+https://github.com/ltao0829/dsh-task-notify.git
 
 ## 配置
 
-设置界面「插件」区会出现「任务完成提醒」卡片，配置存于 `localStorage`（键 `dsh.taskNotify.v1`）：
+设置页面位于 DSH 设置界面的「插件」区（DSH 0.2 新增的 `settings.plugins.tab` 插槽）。配置存于 `localStorage`（键 `dsh.taskNotify.v2`）：
 
 | 开关 | 默认 | 说明 |
 | --- | --- | --- |
 | 启用提醒 | 开 | 总开关 |
 | 对话任务完成提醒 | 开 | 助手一轮任务结束时提醒 |
 | 后台任务完成提醒 | 开 | 后台命令 / 子代理作业结束时提醒 |
+| 监听全部会话的后台任务 | 关 | 为会话列表中每个会话各开一条后台任务流，而非仅监听本页面打开后活跃过的会话 |
 | 需要审核时提醒 | 开 | 运行中等待审批 / 计划评审 / 提问时提醒 |
 | 失败时提醒 | 开 | 对话任务报错或后台任务失败 / 被终止时提醒 |
 | 浏览器系统通知 | 开 | 同时发送操作系统通知（需授权） |
@@ -83,19 +84,34 @@ dsh plugin --profile web add git+https://github.com/ltao0829/dsh-task-notify.git
 
 检测器（`src/detect.ts`）是**纯函数**：快照进去，生命周期事件出来。它不依赖 DSH 或 DOM，因此未来支持更多编程代理只需实现新的快照提供者，而无需重写通知核心。
 
-- **首个快照只建立基线** —— 刷新页面不会为历史任务补发提醒。
-- `src/detect.ts` 与宿主无关（纯数据进 / 纯数据出），可独立单测。
+### DSH 0.2 的数据来源
+
+DSH 0.2 移除了原先同时承载 `jobsBySession` 与逐行 `pendingInteraction` 的单一 `sessions.list` store。监听器现在把三个彼此独立的客户端数据源折叠成一份快照：
+
+| 数据源 | 服务 | 提供内容 |
+| --- | --- | --- |
+| 会话目录 | `ctx.sessions.list` | id、标题、宿主基线的运行标志、引用计数 |
+| 客户端状态投影 | `ctx.uiSession.sessionStatus` | 实时的 `running`、待处理交互（`key` + `kind`）、未读完成标记 |
+| 后台任务名册 | `ctx.jobs.state` | 每个被监听会话的 `JobView` 行，由每会话一条 `job.list` 流驱动 |
+
+值得注意的行为：
+
+- **首个快照只建立基线** —— 刷新页面不会补发历史提醒；此后才出现的会话或任务名册同样视为既存，不触发提醒。
+- 待处理交互以其**不透明请求 key** 追踪：被替换的新请求（审批之后又来一个提问）会再次提醒，而重连时对同一请求的重放不会重复提醒。
+- `job.list` 是**按会话**的流。默认只为「本页面打开后被观察到运行过」的会话各开一条；未在此页面运行过的会话，不可能持有本页面正在等待的后台任务。开启「监听全部会话」则改为覆盖整个会话列表，代价是每个会话一条流。
+- 对话失败检测读取 `lastAgentError`，而该字段只存在于**被 retain** 的会话 face 上。因此本插件覆盖工作区已经打开的会话，不会为了监听报错而额外 retain 会话。
 
 ## 项目结构
 
 ```text
-src/index.ts                         宿主半部 —— 注册设置区
-src/detect.ts                        纯生命周期检测器（快照 diff）
-src/client/index.ts                  浏览器半部 —— 监听器 + 失败监听器
+src/index.ts                         宿主半部 —— 惰性加载锚点
+src/detect.ts                        纯生命周期检测器（三源折叠 + 快照 diff）
+src/client/index.ts                  浏览器半部 —— 监听器、后台任务流与失败监听、UI 注册
 src/client/notify.ts                 toast / 系统通知 / 提示音
+src/client/locales.ts                zh + en 词典与命名空间声明合并
 src/client/settings.ts               localStorage 设置存储
-src/client/TaskNotifySettingsCard.tsx 设置卡片
-tests/*.spec.ts                      检测器、设置、通知、生命周期测试
+src/client/TaskNotifySettingsCard.tsx 设置页面（settings.plugins.tab）
+tests/*.spec.ts                      检测器、生命周期、设置、通知、Manifest 与 apply() 测试
 ```
 
 ## 安全与隐私
@@ -148,8 +164,12 @@ tests/*.spec.ts                      检测器、设置、通知、生命周期�
 
 ## 兼容性与一次性 Profile 验证
 
-- **Node.js**：`>=20.0.0`（在 Node 20 及 Node 22/24 上均通过验证）
-- **DeepSeek Harness**：`>=0.1.0-rc.6 <0.2.0`。Manifest 已对 `0.1.5-alpha.2`、`0.1.5-rc.1` 与 `0.1.5-rc.2` 逐版本声明兼容状态；实际运行结果以单独生成的验证证据为准。
+- **Node.js**：`>=22.0.0`（CI 矩阵覆盖 Node 22 与 24）
+- **DeepSeek Harness**：`^0.2.0-rc.2`
+
+DSH 0.2 已不再读取被废弃的 `dsh.compatibility` 字段。Profile 导入插件前，`evaluatePluginCompatibility`（`@deepseek-ai/dsh-app-boot`）会把插件 `peerDependencies` 中所有 `@deepseek-ai/dsh` / `@deepseek-ai/dsh-*` 项与唯一运行时版本逐一比对，预发布版本参与范围匹配。因此本包把所有 DSH peer 固定为 `^0.2.0-rc.2`，并在 `engines.dsh` 中镜像同一范围；只要有任何一项漂移，`tests/manifest.spec.ts` 就会失败。
+
+> `0.2.0` 是**破坏性的重新定位**，而非增量发布：0.1.x 系列基于已被移除的 `@deepseek-ai/dsh-client-runtime` 与 `settings.plugin.item` 插槽构建，这两者在 DSH 0.2 中都不复存在。
 
 ### 一次性 Profile 验证命令
 
@@ -163,7 +183,7 @@ pnpm run verify:profile
 
 验证日志证据报告：[`docs/verification-evidence.md`](./docs/verification-evidence.md)。
 
-> **限制与边界说明**：Catalog 准入及一次性 Profile 验收证明插件生命周期契约与标准 Web Profile 启动兼容；系统级操作系统通知依然依赖用户在浏览器前端授予通知权限。
+> **限制与边界说明**：Catalog 准入及一次性 Profile 验收证明插件生命周期契约与标准 Web Profile 启动兼容；系统级操作系统通知依然依赖用户在浏览器前端授予通知权限。一次性 Profile 验证会把打包后的 tarball 装入一个临时 `DSH_HOME`，证明插件**被接受并成功加载**；此外构建产物还会被单独校验，确认其外部依赖只包含平台模块。
 
 ## 开发
 

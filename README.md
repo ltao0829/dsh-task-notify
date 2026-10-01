@@ -47,13 +47,14 @@ Restart `dsh web` and refresh the page. On the first click/keypress the browser 
 
 ## Configuration
 
-The settings card lives in the plugin section of DSH's settings UI. Values are stored locally in `localStorage` (`dsh.taskNotify.v1`):
+The settings page lives in the **Plugins** section of DSH's settings UI (the `settings.plugins.tab` seat added in DSH 0.2). Values are stored locally in `localStorage` (`dsh.taskNotify.v2`):
 
 | Toggle | Default | Meaning |
 | --- | --- | --- |
 | Enable reminders | on | master switch |
 | Turn completion | on | an agent turn finishes |
 | Background job | on | a background command / subagent job settles |
+| Watch every session | off | open a job stream for every session in the list instead of only the sessions active since this page loaded |
 | Review needed | on | a running task waits for approval / plan review / question |
 | Failure | on | a turn errors or a job fails / is killed |
 | Browser notification | on | also send an OS-level notification (needs permission) |
@@ -69,7 +70,7 @@ The settings card lives in the plugin section of DSH's settings UI. Values are s
                    Claude Code / Codex / OpenCode later)
                    │
                    ▼
-   sessions snapshot (N-1 vs N)
+   session snapshots (N-1 vs N)
                    │
                    ▼
    lifecycle detector  ──►  events: turn | job | review | failure
@@ -84,19 +85,34 @@ The settings card lives in the plugin section of DSH's settings UI. Values are s
 
 The detector (`src/detect.ts`) is a **pure function**: a snapshot goes in, lifecycle events come out. It knows nothing about DSH or the DOM, which is what makes additional coding-agent adapters a matter of implementing a new snapshot provider rather than rewriting the notification core.
 
-- The **first snapshot only establishes a baseline** — refreshing the page never replays history.
-- `src/detect.ts` is host-agnostic (plain data in / plain data out) and is unit-tested in isolation.
+### Data sources on DSH 0.2
+
+DSH 0.2 replaced the single `sessions.list` store that carried `jobsBySession` and a per-row `pendingInteraction`. The watcher now folds three independent client sources into one snapshot:
+
+| Source | Service | Supplies |
+| --- | --- | --- |
+| Session catalog | `ctx.sessions.list` | ids, titles, the Host baseline running flag, retention |
+| Client status projection | `ctx.uiSession.sessionStatus` | live `running`, the pending interaction (`key` + `kind`), unread completion |
+| Job rosters | `ctx.jobs.state` | every watched Session's `JobView` rows, fed by one `job.list` stream per Session |
+
+Consequences worth knowing:
+
+- The **first snapshot only establishes a baseline** — refreshing the page never replays history, and a Session or job roster first seen later is likewise treated as pre-existing.
+- A pending interaction is tracked by its **opaque request key**, so a replacement request (approval followed by a question) reminds again while a reconnect replay of the same request stays silent.
+- `job.list` is a **per-Session** stream. By default the plugin opens one for each Session observed running since this page loaded — a Session that never ran here cannot hold a job whose completion this page is waiting on. "Watch every session" switches to the whole catalog at the cost of one stream per Session.
+- Turn-failure detection reads `lastAgentError`, which exists only on a **retained** Session face. The plugin therefore covers the Sessions the workspace already keeps open and does not retain extra Sessions just to watch for errors.
 
 ## Project layout
 
 ```text
-src/index.ts                         host half — registers the settings section
-src/detect.ts                        pure lifecycle detector (snapshot diff)
-src/client/index.ts                  browser half — watcher + failure watcher
-src/client/notify.ts                 toast / OS notification / sound
-src/client/settings.ts               localStorage-backed settings store
-src/client/TaskNotifySettingsCard.tsx settings UI card
-tests/*.spec.ts                      detector, settings, notification, lifecycle tests
+src/index.ts                          host half — inert loader anchor
+src/detect.ts                         pure lifecycle detector (three-source fold + diff)
+src/client/index.ts                   browser half — watcher, job-stream and failure watchers, registrations
+src/client/notify.ts                  toast / OS notification / sound
+src/client/locales.ts                 zh + en dictionaries and the namespace merge
+src/client/settings.ts                localStorage-backed settings store
+src/client/TaskNotifySettingsCard.tsx settings page (settings.plugins.tab)
+tests/*.spec.ts                       detector, lifecycle, settings, notification, manifest, apply() tests
 ```
 
 ## Security & Privacy
@@ -149,8 +165,12 @@ See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 ## Compatibility & Disposable Profile Verification
 
-- **Node.js**: `>=20.0.0` (tested on Node 20 and Node 22/24)
-- **DeepSeek Harness**: `>=0.1.0-rc.6 <0.2.0`. The manifest declares per-release compatibility for `0.1.5-alpha.2`, `0.1.5-rc.1`, and `0.1.5-rc.2`; runtime results are reported separately in the generated evidence.
+- **Node.js**: `>=22.0.0` (CI matrix: Node 22 and 24)
+- **DeepSeek Harness**: `^0.2.0-rc.2`
+
+DSH 0.2 stopped reading the retired `dsh.compatibility` block. Before a profile imports a plugin, `evaluatePluginCompatibility` (`@deepseek-ai/dsh-app-boot`) checks every `@deepseek-ai/dsh` / `@deepseek-ai/dsh-*` entry in **`peerDependencies`** against the single runtime version, with prereleases participating in ranges. This package therefore pins every DSH peer to `^0.2.0-rc.2` and mirrors the same range in `engines.dsh`; `tests/manifest.spec.ts` fails the build if any peer drifts.
+
+> Version `0.2.0` is a **breaking re-target**, not an incremental release: the 0.1.x line is built against the retired `@deepseek-ai/dsh-client-runtime` and the `settings.plugin.item` seat, neither of which exists in DSH 0.2.
 
 ### Isolated Verification Command
 
@@ -167,7 +187,7 @@ configurable with `DSH_PLUGIN_INSTALL_TIMEOUT_MS`.
 
 Evidence report: [`docs/verification-evidence.md`](./docs/verification-evidence.md).
 
-> **Note on limitations**: Catalog validation and disposable profile acceptance verify the plugin lifecycle contract and standard Web profile boot. System-level OS notifications require user-granted browser notification permissions.
+> **Note on limitations**: Catalog validation and disposable profile acceptance verify the plugin lifecycle contract and standard Web profile boot. System-level OS notifications require user-granted browser notification permissions. The disposable-profile run installs the packed tarball into a throwaway `DSH_HOME`; it proves the plugin is *accepted and loaded*, and the client bundle's externals are additionally checked to be platform modules only.
 
 ## Development
 

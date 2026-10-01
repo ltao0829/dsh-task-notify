@@ -15,7 +15,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: ['20', '22']
+        # DSH 0.2's toolchain requires Node 22 or newer, and the shipped
+        # desktop runtime embeds Node 24.
+        node-version: ['22', '24']
     steps:
       - uses: actions/checkout@v4
 
@@ -32,11 +34,13 @@ jobs:
       - name: Typecheck
         run: pnpm run typecheck
 
-      - name: Test
-        run: pnpm test
-
+      # Build before test: tests/bundle.spec.ts asserts the emitted
+      # lib/client.js only requires frozen platform modules.
       - name: Build
         run: pnpm run build
+
+      - name: Test
+        run: pnpm test
 
       - name: Pack dry-run (verify publish tarball)
         run: pnpm pack --dry-run
@@ -45,9 +49,9 @@ jobs:
         run: node scripts/check-package.cjs
 
       - name: Disposable Profile Verification
-        if: matrix.node-version == '22'
+        if: matrix.node-version == '24'
         run: |
-          npm install -g @deepseek-ai/dsh
+          npm install -g @deepseek-ai/dsh@^0.2.0-rc.2
           pnpm run verify:profile
 
       - name: Upload disposable profile evidence

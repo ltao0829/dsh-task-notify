@@ -2,3 +2,5 @@ node_modules/
 lib/tsconfig.tsbuildinfo
 *.tsbuildinfo
 .DS_Store
+# `pnpm pack` output from a local verify:run; never publish or commit it.
+*.tgz

@@ -29,6 +29,7 @@ describe('task-notify settings store', () => {
       enabled: true,
       turn: true,
       job: true,
+      allSessions: false,
       review: true,
       failure: true,
       browser: true,
@@ -37,9 +38,9 @@ describe('task-notify settings store', () => {
   })
 
   it('merges persisted values over defaults', async () => {
-    globalThis.localStorage!.setItem('dsh.taskNotify.v1', JSON.stringify({ sound: true, enabled: false }))
+    globalThis.localStorage!.setItem('dsh.taskNotify.v2', JSON.stringify({ sound: true, enabled: false }))
     const { getSettings } = await import('../src/client/settings.ts')
-    expect(getSettings()).toMatchObject({ enabled: false, sound: true, turn: true })
+    expect(getSettings()).toMatchObject({ enabled: false, sound: true, turn: true, allSessions: false })
   })
 
   it('persists updates and notifies subscribers', async () => {
@@ -49,7 +50,7 @@ describe('task-notify settings store', () => {
     setSetting('sound', true)
     expect(getSettings().sound).toBe(true)
     expect(listener).toHaveBeenCalledTimes(1)
-    const raw = JSON.parse(globalThis.localStorage!.getItem('dsh.taskNotify.v1')!)
+    const raw = JSON.parse(globalThis.localStorage!.getItem('dsh.taskNotify.v2')!)
     expect(raw.sound).toBe(true)
     unsubscribe()
     setSetting('sound', false)
@@ -57,8 +58,14 @@ describe('task-notify settings store', () => {
   })
 
   it('falls back to defaults on corrupt JSON', async () => {
-    globalThis.localStorage!.setItem('dsh.taskNotify.v1', '{not-json')
+    globalThis.localStorage!.setItem('dsh.taskNotify.v2', '{not-json')
     const { getSettings } = await import('../src/client/settings.ts')
     expect(getSettings().enabled).toBe(true)
+  })
+
+  it('ignores the retired v1 record so a DSH 0.2 install starts from defaults', async () => {
+    globalThis.localStorage!.setItem('dsh.taskNotify.v1', JSON.stringify({ sound: true, enabled: false }))
+    const { getSettings } = await import('../src/client/settings.ts')
+    expect(getSettings()).toMatchObject({ enabled: true, sound: false })
   })
 })

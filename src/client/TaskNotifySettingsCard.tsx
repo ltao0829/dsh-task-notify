@@ -1,7 +1,13 @@
 /**
- * The task-notify settings card: five always-visible toggles over the
- * localStorage-backed settings store. Renders unconditionally (no settings
- * namespace dependency), so it always appears in the Web UI plugin group.
+ * The task-notify settings page: always-visible toggles over the
+ * localStorage-backed settings store, contributed to the Plugins settings
+ * section's `settings.plugins.tab` seat.
+ *
+ * DSH 0.2 replaced the old `settings.plugin.item` card list with three seats —
+ * a whole page (`settings.section`), a page inside the Plugins section
+ * (`settings.plugins.tab`), or one row in General (`settings.general.item`).
+ * This plugin owns a page, so it renders its toggles as a form rather than as a
+ * single `<li>` card.
  */
 
 import { useSyncExternalStore, type CSSProperties } from 'react'
@@ -12,8 +18,8 @@ import { requestBrowserNotificationPermission } from './notify.ts'
 
 export type { TaskNotifySettings }
 
-/** Props the renderer binds for the task-notify card. */
-export type TaskNotifySettingsCardProps = PropsRuntime<'settings.plugin.item'> & PropsLocale<'task-notify'>
+/** Props the renderer binds for the task-notify settings page. */
+export type TaskNotifySettingsCardProps = PropsRuntime<'settings.plugins.tab'> & PropsLocale<'task-notify'>
 
 interface RowSpec {
   key: keyof TaskNotifySettings
@@ -25,6 +31,7 @@ const ROWS: RowSpec[] = [
   { key: 'enabled', label: 'settings.enabled', hint: 'settings.enabledHint' },
   { key: 'turn', label: 'settings.turn', hint: 'settings.turnHint' },
   { key: 'job', label: 'settings.job', hint: 'settings.jobHint' },
+  { key: 'allSessions', label: 'settings.allSessions', hint: 'settings.allSessionsHint' },
   { key: 'review', label: 'settings.review', hint: 'settings.reviewHint' },
   { key: 'failure', label: 'settings.failure', hint: 'settings.failureHint' },
   { key: 'browser', label: 'settings.browser', hint: 'settings.browserHint' },
@@ -32,15 +39,15 @@ const ROWS: RowSpec[] = [
 ]
 
 /**
- * Render the task-notify card.
- * @param props - locale copy.
- * @returns the card.
+ * Render the task-notify settings page.
+ * @param props - locale copy injected by the slot renderer.
+ * @returns the settings page body.
  */
 export function TaskNotifySettingsCard(props: TaskNotifySettingsCardProps) {
   const { t } = props
   const settings = useSyncExternalStore(subscribeSettings, getSettings)
   return (
-    <li style={styles.card}>
+    <section style={styles.page} aria-label={t('settings.title')}>
       <div style={styles.title}>{t('settings.title')}</div>
       <div style={styles.desc}>{t('settings.description')}</div>
       {ROWS.map((row) => (
@@ -61,21 +68,17 @@ export function TaskNotifySettingsCard(props: TaskNotifySettingsCardProps) {
           </span>
         </label>
       ))}
-    </li>
+    </section>
   )
 }
 
 const styles: Record<string, CSSProperties> = {
-  card: {
-    listStyle: 'none',
-    border: '1px solid var(--dsw-alias-border-l2)',
-    borderRadius: '8px',
-    background: 'var(--dsw-alias-bg-layer-3)',
-    padding: '12px 14px',
+  page: {
     display: 'flex',
     flexDirection: 'column',
     gap: '10px',
     minWidth: 0,
+    maxWidth: '560px',
   },
   title: {
     fontSize: '14px',
@@ -84,7 +87,7 @@ const styles: Record<string, CSSProperties> = {
   },
   desc: {
     fontSize: '12px',
-    color: 'var(--dsw-alias-label-tertiary)',
+    color: 'var(--dsw-alias-label-secondary)',
   },
   row: {
     display: 'flex',

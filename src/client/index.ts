@@ -1,150 +1,219 @@
 /**
- * dsh-task-notify browser half — subscribes to the sessions-list store and
- * fires a reminder (toast, optional OS notification, optional beep) whenever
- * an agent turn or a background job settles. Registers the locale
- * dictionaries and an always-visible settings card into the Web UI plugin
- * group. Settings live in localStorage, so nothing depends on the host
- * settings surface.
+ * dsh-task-notify browser half.
+ *
+ * DSH 0.2 replaced the single `sessions.list` store (which used to carry
+ * `jobsBySession` and a per-row `pendingInteraction`) with three independent
+ * sources, and this watcher reads all three:
+ *
+ * - `ctx.sessions.list` — the Session Controller catalog (ids, titles, the
+ *   Host baseline running flag);
+ * - `ctx.uiSession.sessionStatus` — the live Client status projection
+ *   (running, the pending interaction, the unread-completion flag);
+ * - `ctx.jobs.state` — the job-controller rosters, fed by one `job.list` stream
+ *   per watched Session.
+ *
+ * It registers the `task-notify` dictionaries and its settings page into the
+ * Plugins settings section, then diffs consecutive snapshots into reminders.
  * @module @ltao0829/dsh-task-notify/client
  */
 
-import type { ClientContext, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
-// Type-only: pulls the locale plugin's Context merge (ctx.locale).
+import type { Context } from '@deepseek-ai/cordis'
+// Type-only imports pull the Client Context merges for ctx.sessions,
+// ctx.uiSession and ctx.jobs, plus the slot declarations this plugin
+// registers into. They are erased at build time and never reach the module
+// table (a cross-plugin value import would either duplicate a runtime instance
+// or ask for a specifier the frozen table cannot answer).
+import type {} from '@deepseek-ai/dsh-api-job-controller/client'
+import type {} from '@deepseek-ai/dsh-api-session-controller/client'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
-import type {} from '@deepseek-ai/dsh-client-ui-slots'
+import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
+import type {} from '@deepseek-ai/dsh-client-ui-session/client'
+import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { diffCompletions, toSnapshotView, type SnapshotView } from '../detect.ts'
 import { ensureAudioUnlock, notifyEvent } from './notify.ts'
-import { NS, zh, en, type SettingsCardKey } from './locales.ts'
+import { NS, en, zh } from './locales.ts'
 import { getSettings } from './settings.ts'
 import { TaskNotifySettingsCard, type TaskNotifySettings } from './TaskNotifySettingsCard.tsx'
 
 export type { TaskNotifySettings } from './TaskNotifySettingsCard.tsx'
 
-declare module '@deepseek-ai/dsh-client-ui-slots' {
-  interface LocaleNamespaceMap {
-    /** task-notify settings-card copy. */
-    'task-notify': SettingsCardKey
-  }
-
-  interface SlotMap {
-    /**
-     * The core plugin-configuration section slot, keyed by the settings
-     * namespace a card edits. Spelled here with the same shape so this package
-     * can register its card without depending on the package that declares the
-     * slot at runtime.
-     */
-    'settings.plugin.item': { kind: 'keyed'; scope: 'root'; owner: SettingsPluginItemOwnerProps }
-  }
-}
-
-/** Owner share of a plugin card (the group card supplies nothing). */
-export interface SettingsPluginItemOwnerProps {
-  /** Marker field: card owner props are intentionally empty. */
-  children?: never
-}
-
 /** Services required by this plugin. */
-export const inject = ['slots', 'locale', 'sessions']
+export const inject = ['slots', 'locale', 'sessions', 'uiSession', 'jobs']
 
 /**
- * Register the reminder watcher and its settings card.
+ * The Controller's branded Session identity, spelled from its own signature so
+ * this module needs no value import of the session types package.
+ */
+type SessionKey = Parameters<
+  import('@deepseek-ai/dsh-api-session-controller/client').ISessions['binding']
+>[0]
+
+/**
+ * Register the reminder watcher and its settings page.
  * @param ctx - client root context.
  */
-export function apply(ctx: ClientContext): void {
+export function apply(ctx: Context): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'task-notify: dictionaries')
+  const t = ctx.locale.bind(NS)
 
-  // Settings card: always visible, backed by localStorage.
-  ctx.slots.inject('settings.plugin.item', () => ctx.slots.register({
-    name: 'settings.plugin.item',
-    key: NS,
+  ctx.slots.inject('settings.plugins.tab', () => ctx.slots.register({
+    name: 'settings.plugins.tab',
+    id: NS,
+    order: 10,
+    label: () => t('settings.title'),
     locale: NS,
   }, TaskNotifySettingsCard))
+
+  const sessions = ctx.sessions
+  const ui = ctx.uiSession
+  const jobs = ctx.jobs
 
   // Unlock Web Audio and request the OS notification permission on the first
   // user gesture (browsers only show the prompt during a gesture).
   ensureAudioUnlock()
 
-  // Completion watcher: diff each sessions-list snapshot against the previous
-  // one and fire a reminder for every newly-settled turn/job. The first
-  // observation only establishes a baseline — page load never replays history.
-  const sessions = ctx.sessions
+  // Sessions observed running at least once since this page loaded. Used as the
+  // default job-stream target set: a Session that never ran here cannot hold a
+  // job whose completion this page is waiting on, and watching every catalog
+  // row would open one `job.list` stream per Session.
+  const activeSessions = new Set<string>()
+  const jobWatchers = new Map<string, () => void>()
+
+  /** Open and release job rosters so exactly `targets` are watched. */
+  const syncJobWatchers = (targets: ReadonlySet<string>): void => {
+    for (const [id, stop] of [...jobWatchers]) {
+      if (targets.has(id)) continue
+      stop()
+      jobWatchers.delete(id)
+    }
+    for (const id of targets) {
+      if (jobWatchers.has(id)) continue
+      jobWatchers.set(id, jobs.watchRows(id as SessionKey))
+    }
+  }
+
+  // Turn-failure watcher. `lastAgentError` lives on the Session face, and a
+  // face exists only for a retained generation, so this observes exactly the
+  // Sessions the workspace already keeps open — the same reach the 0.1.x
+  // `sessions.binding(id)?.session` watcher had, and it costs no extra retain.
+  const errorSeen = new Map<string, string | null>()
+  const errorUnsubs = new Map<string, () => void>()
+
+  const syncErrorWatchers = (): void => {
+    const list = sessions.list.getSnapshot()
+    const ids = new Set<string>(list.ids as readonly string[])
+    for (const [id, unsubscribe] of [...errorUnsubs]) {
+      if (ids.has(id)) continue
+      unsubscribe()
+      errorUnsubs.delete(id)
+      errorSeen.delete(id)
+    }
+    for (const id of ids) {
+      if (errorUnsubs.has(id)) continue
+      const binding = sessions.binding(id as SessionKey)
+      if (binding === undefined) continue
+      const face = binding.session
+      const onSnapshot = (): void => {
+        const error = face.getSnapshot().lastAgentError
+        const before = errorSeen.get(id)
+        errorSeen.set(id, error)
+        if (before === undefined || before !== null || error === null) return
+        const cfg = getSettings()
+        if (!cfg.enabled || !cfg.failure) return
+        const title = sessions.list.getSnapshot().byId[id as SessionKey]?.displayTitle ?? id
+        notifyEvent({ kind: 'failure', sessionId: id, title, message: error }, {
+          browser: cfg.browser,
+          sound: cfg.sound,
+        }, t)
+      }
+      errorUnsubs.set(id, face.subscribe(onSnapshot))
+      onSnapshot()
+    }
+  }
+
   let prev: SnapshotView | null = null
   let inited = false
-  const applySnapshot = (): void => {
-    const next = toSnapshotView(sessions.list.getSnapshot())
+
+  /** One reconcile pass over the three sources. */
+  const reconcileOnce = (): void => {
+    const list = sessions.list.getSnapshot()
+    const status = ui.sessionStatus.getSnapshot()
+    const cfg = getSettings()
+
+    const inList = new Set<string>(Object.keys(list.byId))
+    for (const id of activeSessions) if (!inList.has(id)) activeSessions.delete(id)
+
+    const statusRunning = new Map<string, boolean>()
+    for (const [id, value] of status) {
+      if (value.running !== undefined) statusRunning.set(id, value.running)
+    }
+    for (const id of inList) {
+      const running = statusRunning.get(id) ?? list.byId[id as SessionKey]?.running ?? false
+      if (running) activeSessions.add(id)
+    }
+
+    syncJobWatchers(cfg.allSessions ? inList : activeSessions)
+    syncErrorWatchers()
+
+    const next = toSnapshotView(list, status, jobs.state.getSnapshot())
     if (!inited) {
+      // First observation only establishes a baseline — page load never
+      // replays history for every already-settled task.
       prev = next
       inited = true
       return
     }
     const events = diffCompletions(prev, next)
     prev = next
-    if (events.length === 0) return
-    const cfg = getSettings()
-    if (!cfg.enabled) return
+    if (events.length === 0 || !cfg.enabled) return
     for (const event of events) {
       if (event.kind === 'turn' && !cfg.turn) continue
       if (event.kind === 'review' && !cfg.review) continue
+      if (event.kind === 'failure' && !cfg.failure) continue
       if (event.kind === 'job') {
         const failed = event.job.status === 'failed' || event.job.status === 'killed'
         if (failed && !cfg.failure) continue
         if (!failed && !cfg.job) continue
       }
-      notifyEvent(event, {
-        browser: cfg.browser,
-        sound: cfg.sound,
-      })
+      notifyEvent(event, { browser: cfg.browser, sound: cfg.sound }, t)
     }
   }
-  ctx.effect(() => {
-    const unsubscribe = sessions.list.subscribe(applySnapshot)
-    applySnapshot()
-    return unsubscribe
-  }, 'task-notify: watcher')
 
-  // Turn-failure watcher: subscribe to each session's ConversationSnapshot and
-  // detect lastAgentError transitions (null -> non-null = the turn errored).
-  const errorSeen = new Map<SessionId, string | null>()
-  const errorUnsubs = new Map<SessionId, () => void>()
-  const syncErrorWatchers = (): void => {
-    const snapshot = sessions.list.getSnapshot()
-    const ids = new Set(snapshot.ids)
-    for (const [id, unsub] of [...errorUnsubs]) {
-      if (!ids.has(id)) {
-        unsub()
-        errorUnsubs.delete(id)
-        errorSeen.delete(id)
-      }
+  // One subscription can make another fire (opening a job stream publishes a
+  // roster). Collapse that cascade into a bounded re-run instead of recursing.
+  let reconciling = false
+  let queued = false
+  const reconcile = (): void => {
+    if (reconciling) {
+      queued = true
+      return
     }
-    for (const id of ids) {
-      if (errorUnsubs.has(id)) continue
-      const session = sessions.binding(id)?.session
-      if (session === undefined) continue
-      const onSnapshot = (): void => {
-        const err = session.getSnapshot().lastAgentError
-        const before = errorSeen.get(id)
-        errorSeen.set(id, err)
-        if (before !== undefined && before === null && err !== null) {
-          const cfg = getSettings()
-          if (!cfg.enabled || !cfg.failure) return
-          const title = sessions.list.getSnapshot().byId[id]?.displayTitle ?? id
-          notifyEvent({ kind: 'failure', sessionId: id, title, message: err }, {
-            browser: cfg.browser,
-            sound: cfg.sound,
-          })
-        }
-      }
-      errorUnsubs.set(id, session.subscribe(onSnapshot))
-      onSnapshot()
+    reconciling = true
+    try {
+      reconcileOnce()
+    } finally {
+      reconciling = false
+    }
+    if (queued) {
+      queued = false
+      reconcile()
     }
   }
+
   ctx.effect(() => {
-    const listUnsub = sessions.list.subscribe(syncErrorWatchers)
-    syncErrorWatchers()
+    const unsubscribers = [
+      sessions.list.subscribe(reconcile),
+      ui.sessionStatus.subscribe(reconcile),
+      jobs.state.subscribe(reconcile),
+    ]
+    reconcile()
     return () => {
-      listUnsub()
-      for (const unsub of errorUnsubs.values()) unsub()
+      for (const unsubscribe of unsubscribers) unsubscribe()
+      for (const stop of jobWatchers.values()) stop()
+      jobWatchers.clear()
+      for (const unsubscribe of errorUnsubs.values()) unsubscribe()
       errorUnsubs.clear()
+      errorSeen.clear()
     }
-  }, 'task-notify: turn-failure watcher')
+  }, 'task-notify: watcher')
 }
