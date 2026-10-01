@@ -36,15 +36,16 @@ AI 编程代理越来越多地运行长时间、自主的任务：一轮任务�
 前置：先安装 [Node.js](https://nodejs.org) `>=22` 和 [pnpm](https://pnpm.io)。
 
 ```sh
-# 从 Git 安装，锁定发布标签
+# 从 npm 安装
+dsh plugin --profile <profile> add @ltao0829/dsh-task-notify
+
+# 或从 Git 安装，锁定发布标签
 dsh plugin --profile <profile> add git+https://github.com/ltao0829/dsh-task-notify.git#v0.2.0
 ```
 
 `<profile>` 是要装入的 DSH Profile：`dsh web` 服务器用 `web`，桌面端用 `desktop`。
 
-> **npm 上的版本已落后。** 已发布的 `@ltao0829/dsh-task-notify@0.1.0` 早于本次 DSH 0.2 重定位：DSH 0.2 的兼容性网关会直接拒绝它，强行装入也无法加载。在 `0.2.0` 发布到 npm 之前，请使用上面锁定标签的 Git 安装方式。
-
-> **版本必须与 DSH 系列对应。** `0.2.x` 需要 **DeepSeek Harness 0.2**；若仍在 DSH 0.1.x，请安装 `0.1.2`。
+> **版本必须与 DSH 系列对应。** `0.2.x` 需要 **DeepSeek Harness 0.2**；若仍在 DSH 0.1.x，请安装 `0.1.2`。两个系列不能互相通用：DSH 0.2 的兼容性网关会直接拒绝 0.1.x 系列，而 DSH 0.1.x 也无法加载 0.2.x 系列。
 
 重启 `dsh web` 并刷新页面。首次在页面里点击/按键时，浏览器会请求「通知」权限，点允许即可收到系统通知。
 
