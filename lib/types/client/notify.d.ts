@@ -1,6 +1,6 @@
 /**
  * Reminder rendering — a self-contained DOM toast plus optional browser
- * (OS-level) notification and a short Web Audio beep.
+ * (OS-level) notification and a configurable sound.
  *
  * No React and no slot dependency: the toast mounts directly on document.body
  * so a reminder still works on screens with no Conversation seat (no Session
@@ -8,16 +8,33 @@
  * seat for frame-wide floating layers, but that seat is Session-agnostic only
  * in principle — occupying it costs a React root and a slot registration for
  * what is a transient, dismissable banner.
+ *
+ * Every option degrades quietly: a bad template falls back to the built-in
+ * copy, a broken custom sound to silence, and every rendered string goes
+ * through `textContent`, so a template can never inject markup.
  * @module @ltao0829/dsh-task-notify/client/notify
  */
 import type { CompletionEvent } from '../detect.ts';
+import type { SoundMode, ToastPosition } from './settings.ts';
 import type { TaskNotifyTranslate } from './locales.ts';
-/** Notification channels the watcher may use (read from settings). */
+/** Notification channels and presentation options the watcher may use. */
 export interface NotifyOptions {
     /** Whether to send a browser Notification, when permission is granted. */
     browser: boolean;
-    /** Whether to play the completion beep. */
-    sound: boolean;
+    /** Which sound to play (`'off'` plays nothing). */
+    sound: SoundMode;
+    /** Audio URL for `sound: 'custom'`; an empty URL falls back to the built-in two-tone. */
+    soundUrl?: string;
+    /** Sound volume `0`–`1`; out-of-range or junk values are clamped. */
+    volume?: number;
+    /** Screen corner the toasts dock to. */
+    toastPosition?: ToastPosition;
+    /** Seconds a toast stays on screen, clamped to `3`–`15`. */
+    toastSeconds?: number;
+    /** Title template; empty or blank uses the built-in localized title. */
+    templateTitle?: string;
+    /** Body template; empty or blank uses the built-in localized body. */
+    templateBody?: string;
 }
 /** Fire every enabled channel for one completion event. */
 export declare function notifyEvent(event: CompletionEvent, options: NotifyOptions, t: TaskNotifyTranslate): void;

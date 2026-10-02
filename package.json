@@ -44,6 +44,7 @@
     "prepublishOnly": "tsc -b && tsdown",
     "typecheck": "tsc -b --pretty false",
     "test": "vitest run",
+    "coverage": "vitest run --coverage",
     "verify:profile": "node scripts/verify-disposable-profile.cjs",
     "watch": "tsdown --watch"
   },
@@ -72,6 +73,7 @@
     "@deepseek-ai/dsh-package-manifest": "0.2.0-rc.2",
     "@types/node": "^22.20.0",
     "@types/react": "~18.3.1",
+    "@vitest/coverage-v8": "4.1.11",
     "jsdom": "^26.0.0",
     "lightningcss": "^1.32.0",
     "react": "^18.2.0",

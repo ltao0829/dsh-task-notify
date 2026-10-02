@@ -8,10 +8,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 Planned work is tracked in exactly one place: the [Roadmap](./README.md#roadmap) in `README.md`. This file records what has shipped, so an item appears here only once it is implemented — not when it is merely intended.
 
+### Added
+
+- **Notification customization.** The eight boolean switches gained user-facing configuration:
+  - **Title / body templates** with `{title}` (task title), `{session}` (session ID), and `{kind}` (localized event type) placeholders; empty templates keep the built-in localized copy, unknown placeholders stay as written, and template output is rendered as plain text (`textContent`), so a template cannot inject markup.
+  - **Sound styles**: none / single tone / the classic two-tone / a custom audio URL, plus a 0–100% volume control. A custom mode with an empty URL falls back to the two-tone; an unloadable URL degrades to silence.
+  - **Toast placement and duration**: any of the four screen corners, and 3–15 seconds on screen (previously fixed at bottom-right for 5 seconds).
+  - **Quiet hours**: a local-time window (may cross midnight, e.g. 22:00 → 08:00) that suppresses every reminder, plus a per-session mute list.
+- **Test coverage measurement and regression gate.** Added `@vitest/coverage-v8` (pinned to the exact vitest version), a `pnpm run coverage` script, and V8 coverage over `src/**` with `text` + `lcov` reporters. Global thresholds track the measured coverage with about one point of slack — statements 77 / branches 68 / functions 90 / lines 81 against a measured 78.6 / 69.85 / 91.35 / 82.3 — and are raise-only; a drop fails the run. CI runs coverage after the build on both Node legs and uploads `coverage/lcov.info` from the Node 24 leg as an artifact. The weakest remaining files are the client watcher (`src/client/index.ts`, 69.76% of statements and 44.44% of branches) and the toast/notification renderer (`src/client/notify.ts`, 70.58%).
+- **npm downloads badge** in both READMEs (`img.shields.io/npm/dm/…`), backed purely by npm's public download API — no client-side reporting was added. Caveat to keep attached to any use of the number: it counts npm tarball downloads per month (CI installs and registry mirrors included), not active users.
+
 ### Changed
 
+- **Settings storage upgraded to `dsh.taskNotify.v3`.** A leftover `v2` record is migrated once — every toggle is kept, and the retired `sound` boolean maps to `soundMode: 'double'` (off maps to `'off'`) — after which the `v2` key is removed. Every stored field is sanitized on load: junk values degrade to their defaults, `volume` and `toastSeconds` are clamped into `0`–`1` / `3`–`15`.
 - **Documentation on `main` since `0.2.0`.** Install guidance in both READMEs names a version range (pnpm 11's 24-hour `minimumReleaseAge` cooldown would otherwise resolve the bare name to an older release), pins Git installs to the `v0.2.0` tag, and states the DSH line pairing. Both READMEs also gained a language switch, a requirements table, an uninstall section, a troubleshooting table, and settings labels that match `src/client/locales.ts`; the demo table lists the three recording file names instead of embedding GIFs that are not in the repository.
 - Added `docs/roadmap-plan.md`: scope, technical constraints, dependencies, risks, and acceptance criteria for every open roadmap item.
+- **Settings-page and test hygiene.** The body-template box is now its own labelled field instead of a second box under the title label — a placeholder is not an accessible name. `tests/settings-card.spec.tsx` restores every setting to its documented default in `beforeEach`, so no test can observe another test's edits (the file imports the store statically, and a dynamic import after `vi.resetModules()` would hand the card a second React instance).
 
 ### Fixed
 

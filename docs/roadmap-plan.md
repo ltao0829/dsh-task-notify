@@ -91,6 +91,7 @@ README 明确承诺"无遥测、无分析、无追踪、不上传对话内容"�
 | **口径说明** | npm downloads 统计的是 **tarball 下载次数**，不等于活跃用户数（含 CI 拉取、镜像同步）。写进文档时必须标注口径，避免夸大 |
 | **验收** | 徽章正常显示；若做方案 B，连续两周有数据提交，且该 workflow 失败不阻塞主 CI |
 | **估算** | 方案 A：0.5 小时；方案 B：半天 |
+| **状态** | **方案 A 已交付（2026-10-02）**——徽章已加入两份 README，口径说明随 CHANGELOG `[Unreleased]` 记录，发版时随对应版本归档。据此 README 路线图已拆成两条：「npm 下载量徽章」已勾选，「采用度趋势跟踪（周度下载量变化）」保持未勾选——方案 B 尚未启动 |
 
 ### T3 · 跨平台通知后端（近期，架构级）
 
@@ -114,17 +115,19 @@ README 明确承诺"无遥测、无分析、无追踪、不上传对话内容"�
 | **注意** | 卡片只能 require 冻结表内的模块（§2.1）；模板插值需防注入——用 `textContent` 而非 `innerHTML`（现有 toast 已是这么做的，保持一致） |
 | **验收** | `tests/config.spec.ts` 覆盖新默认值与迁移；`tests/notification.spec.ts` 覆盖模板渲染与降级；`pnpm test` 全绿 |
 | **估算** | 2–3 天 |
+| **状态** | **已交付（建议范围 ①②③④ 全部，2026-10-02）**——设置存储升 key 至 `dsh.taskNotify.v3`（显式迁移：v2 开关全保留，旧 `sound` 布尔映射为双音模式，迁移后移除 v2 键；加载时逐字段清理与钳制）；标题/正文模板（`{title}`/`{session}`/`{kind}`，空 = 内置文案，`textContent` 渲染防注入）；提示音四选一 + 音量 + 自定义 URL（空 URL 回退双音）；toast 四角 + 3–15 秒时长；免打扰时段（支持跨零点）+ 按会话静音。新增 `tests/settings-card.spec.tsx` 真实渲染卡片后，卡片覆盖从 15% 升至 92.5%。发版时随对应版本归档 |
 
 ### T5 · 测试覆盖率度量与提升（近期）
 
 | 项 | 内容 |
 | :--- | :--- |
 | **目标** | 先把"覆盖率"变成可测量的数字，再谈提升 |
-| **现状** | 8 个套件 / 63 个用例；`vitest.config.ts` 无 `coverage` 配置，`package.json` 无脚本、无阈值 |
+| **现状** | 起点为 8 个套件 / 63 个用例，`vitest.config.ts` 无 `coverage` 配置，`package.json` 无脚本、无阈值；接入后为 9 个套件 / 97 个用例（`1 skipped` 见下方澄清） |
 | **澄清** | 测试输出里的 `1 skipped` **不是被禁用的用例**，而是 `tests/bundle.spec.ts` 中 `describe.skipIf(!built)` 与 `describe.skipIf(built)` 的配对：构建产物存在时跑真实断言，不存在时跑占位套件 |
 | **步骤** | ① 加 `@vitest/coverage-v8`<br>② `vitest.config.ts` 增 `coverage: { provider: 'v8', reporter: ['text','lcov'], include: ['src/**'], thresholds: {...} }`<br>③ `package.json` 增 `"coverage": "vitest run --coverage"`<br>④ CI 中在 **build 之后**运行并把 `lcov` 作为 artifact 上传<br>⑤ 阈值以"当前实测值向下取整"起步，此后只允许升 |
 | **验收** | `pnpm run coverage` 有数字产出；CI 上传 artifact；阈值能卡住回退 |
 | **估算** | 度量落地：半天；补测达到合理阈值：另 1–2 天 |
+| **状态** | **度量落地已交付（2026-10-02）**——`@vitest/coverage-v8`（锁定与 vitest 相同版本）+ `pnpm run coverage` + 全局阈值 **77/68/90/81**（按当前实测值留约 1 pp 余量，只允许升）+ CI 覆盖率步骤（build 之后）与 lcov artifact 上传。实测全局：语句 **78.6%** / 分支 **69.85%** / 函数 **91.35%** / 行 **82.3%**。阈值最初按接入卡片测试**之前**的基线定为 69/56/77/73，比实测低 9–14 pp，已收紧。补测提升仍待推进，真正的洼地是 `src/client/index.ts`（语句 69.76% / 分支 44.44%）与 `src/client/notify.ts`（70.58%）；`TaskNotifySettingsCard.tsx` 已达 92.5%，README 路线图据此拆出「提升监听器与通知渲染器的覆盖率」一条 |
 
 ### T6 · 与宿主无关的生命周期 API（长期）
 

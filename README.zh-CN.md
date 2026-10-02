@@ -4,6 +4,7 @@
 
 [![CI](https://github.com/ltao0829/dsh-task-notify/actions/workflows/ci.yml/badge.svg)](https://github.com/ltao0829/dsh-task-notify/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@ltao0829/dsh-task-notify)](https://www.npmjs.com/package/@ltao0829/dsh-task-notify)
+[![npm downloads](https://img.shields.io/npm/dm/@ltao0829/dsh-task-notify)](https://www.npmjs.com/package/@ltao0829/dsh-task-notify)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](./LICENSE)
 
 [English](./README.md) · **简体中文**
@@ -32,6 +33,7 @@ AI 编程代理越来越多地运行长时间、自主的任务：一轮任务�
 - **失败提醒** —— 对话任务报错或后台任务失败 / 被终止时提醒。
 - **三种通知通道** —— 浏览器系统通知 + 页面 toast + 可选双音提示音。
 - **逐项开关** —— 每类事件和每种通道均可独立开关。
+- **可自定义** —— 标题 / 正文模板、提示音样式与音量、toast 停靠角落与停留时长、免打扰时段、按会话静音。
 
 ## 环境要求
 
@@ -70,11 +72,11 @@ dsh plugin --profile <profile> remove @ltao0829/dsh-task-notify
 # 桌面端：在「设置 → 插件」中移除
 ```
 
-这会同时移除包与它的 bundle 条目，`task-notify` 行随即从合成后的 Profile 中消失。浏览器侧的 `localStorage` 记录（`dsh.taskNotify.v2`）不属于 Profile：若希望重装后从默认值开始，请手动清除该键。
+这会同时移除包与它的 bundle 条目，`task-notify` 行随即从合成后的 Profile 中消失。浏览器侧的 `localStorage` 记录（`dsh.taskNotify.v3`）不属于 Profile：若希望重装后从默认值开始，请手动清除该键。
 
 ## 配置
 
-设置页面位于 DSH 设置界面的**「插件」**区（DSH 0.2 新增的 `settings.plugins.tab` 插槽），页面标题为*任务完成提醒*。配置存于 `localStorage`（键 `dsh.taskNotify.v2`）：
+设置页面位于 DSH 设置界面的**「插件」**区（DSH 0.2 新增的 `settings.plugins.tab` 插槽），页面标题为*任务完成提醒*。配置存于 `localStorage`（键 `dsh.taskNotify.v3`）。遗留的 `v2` 记录会被迁移一次——所有开关保留，旧的提示音开关映射为双音模式——随后 `v2` 键会被移除：
 
 | 开关 | 默认 | 说明 |
 | --- | --- | --- |
@@ -85,9 +87,21 @@ dsh plugin --profile <profile> remove @ltao0829/dsh-task-notify
 | 需要审核时提醒 | 开 | 运行中等待审批 / 计划评审 / 提问时提醒 |
 | 失败时提醒 | 开 | 对话任务报错或后台任务失败 / 被终止时提醒 |
 | 浏览器系统通知 | 开 | 同时发送操作系统通知（需授权） |
-| 提示音 | 关 | 同时播放提示音 |
 
-页面内 toast 没有开关——它是始终可用的通道，也是系统通知被拒绝、提示音被拦截时的兜底。
+### 提示音、弹窗与免打扰
+
+| 设置 | 默认 | 说明 |
+| --- | --- | --- |
+| 提示音 | 无 | 无 / 单音 / 双音 / 自定义音频 |
+| 音频 URL | 空 | 提示音为*自定义音频*时播放；留空或加载失败时回退为双音 |
+| 音量 | 100% | 对所有提示音样式生效 |
+| 弹窗位置 | 右下 | 四个屏幕角落任选 |
+| 停留时长（秒） | 5 | 弹窗显示 3–15 秒后自动消失 |
+| 自定义标题 / 正文模板 | 空 | 占位符：`{title}`（任务标题）、`{session}`（会话 ID）、`{kind}`（事件类型）；留空使用内置文案 |
+| 免打扰时段 | 关 | 该本地时间段内不触发任何提醒；支持跨零点（如 22:00 → 08:00） |
+| 静音的会话 | 空 | 每行一个会话 ID；这些会话不触发任何提醒 |
+
+页面内 toast 没有开关——它是始终可用的通道，也是系统通知被拒绝、提示音被拦截时的兜底。模板输出按纯文本渲染，模板无法注入任何标记。
 
 ## 故障排查
 
@@ -96,6 +110,7 @@ dsh plugin --profile <profile> remove @ltao0829/dsh-task-notify
 | 有 toast，但没有系统通知 | `Notification.permission` 不是 `granted`，插件会静默跳过而非报错 | 授予通知权限。浏览器只允许在用户手势中弹窗，因此在页面里点击一次即可；或把**浏览器系统通知**关掉再打开，它会主动请求权限 |
 | 没有提示音 | Web Audio 在用户手势之前处于 suspended 状态 | 在页面里点击一次或按一下键盘，音频会在首个手势解锁 |
 | 完全没有任何提醒 | 总开关或对应事件开关是关的 | 检查**启用提醒**与各事件开关 |
+| 设定时段附近没有提醒 | 已开启免打扰时段，当前本地时间落在窗口内 | 关闭**免打扰时段**或调整时间；**静音的会话**列表中的会话同样保持静音 |
 | 已经跑完的任务没有补发提醒 | 页面加载后的首个快照只建立基线 | 属预期行为——刷新页面不会重放历史 |
 | 只对当前在看的会话有后台任务提醒 | 默认只为「本页面打开后被观察到运行过」的会话各开一条 `job.list` 流 | 打开**监听全部会话的后台任务** |
 | 任务失败但没有提醒 | `lastAgentError` 只存在于被 retain 的会话 face 上 | 属预期行为——插件覆盖工作区已保持打开的会话，不会为了监听报错而额外 retain 会话 |
@@ -188,10 +203,12 @@ tests/*.spec.ts                      检测器、生命周期、设置、通知�
 ### 近期
 
 - [ ] README 演示录屏
-- [ ] npm 下载量 / 采用度跟踪
+- [x] npm 下载量徽章（shields.io，仅用 npm 公共统计 API）
+- [ ] 采用度趋势跟踪（周度下载量变化）
 - [ ] 跨平台通知后端
-- [ ] 通知自定义
-- [ ] 更完善的测试覆盖
+- [x] 通知自定义
+- [x] 测试覆盖率度量与"只升不降"回归门禁
+- [ ] 提升监听器与通知渲染器的覆盖率
 
 ### 长期
 
@@ -240,6 +257,7 @@ pnpm run verify:profile
 pnpm install
 pnpm run typecheck
 pnpm test
+pnpm run coverage
 pnpm run build
 pnpm run verify:profile
 ```

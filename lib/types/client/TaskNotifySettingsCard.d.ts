@@ -1,13 +1,16 @@
 /**
- * The task-notify settings page: always-visible toggles over the
+ * The task-notify settings page: always-visible controls over the
  * localStorage-backed settings store, contributed to the Plugins settings
  * section's `settings.plugins.tab` seat.
  *
  * DSH 0.2 replaced the old `settings.plugin.item` card list with three seats —
  * a whole page (`settings.section`), a page inside the Plugins section
  * (`settings.plugins.tab`), or one row in General (`settings.general.item`).
- * This plugin owns a page, so it renders its toggles as a form rather than as a
- * single `<li>` card.
+ * This plugin owns a page, so it renders its toggles and customization fields
+ * as a form rather than as a single `<li>` card. Controls are native elements
+ * styled with DSH 0.2 theme tokens: the client bundle may only require the
+ * frozen platform module table, so no additional component library is pulled
+ * in here.
  */
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots';
 import { type TaskNotifySettings } from './settings.ts';

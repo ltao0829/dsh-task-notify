@@ -30,15 +30,34 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
 import { diffCompletions, toSnapshotView, type SnapshotView } from '../detect.ts'
-import { ensureAudioUnlock, notifyEvent } from './notify.ts'
+import { ensureAudioUnlock, notifyEvent, type NotifyOptions } from './notify.ts'
 import { NS, en, zh } from './locales.ts'
-import { getSettings } from './settings.ts'
+import { getSettings, isQuietTime } from './settings.ts'
 import { TaskNotifySettingsCard, type TaskNotifySettings } from './TaskNotifySettingsCard.tsx'
 
 export type { TaskNotifySettings } from './TaskNotifySettingsCard.tsx'
 
 /** Services required by this plugin. */
 export const inject = ['slots', 'locale', 'sessions', 'uiSession', 'jobs']
+
+/** Presentation options derived from the settings snapshot. */
+function optionsFor(cfg: TaskNotifySettings): NotifyOptions {
+  return {
+    browser: cfg.browser,
+    sound: cfg.soundMode,
+    soundUrl: cfg.soundUrl,
+    volume: cfg.volume,
+    toastPosition: cfg.toastPosition,
+    toastSeconds: cfg.toastSeconds,
+    templateTitle: cfg.templateTitle,
+    templateBody: cfg.templateBody,
+  }
+}
+
+/** Whether a reminder for this session must not fire right now. */
+function suppressed(cfg: TaskNotifySettings, sessionId: string): boolean {
+  return isQuietTime(cfg) || cfg.mutedSessions.includes(sessionId)
+}
 
 /**
  * The Controller's branded Session identity, spelled from its own signature so
@@ -120,11 +139,9 @@ export function apply(ctx: Context): void {
         if (before === undefined || before !== null || error === null) return
         const cfg = getSettings()
         if (!cfg.enabled || !cfg.failure) return
+        if (suppressed(cfg, id)) return
         const title = sessions.list.getSnapshot().byId[id as SessionKey]?.displayTitle ?? id
-        notifyEvent({ kind: 'failure', sessionId: id, title, message: error }, {
-          browser: cfg.browser,
-          sound: cfg.sound,
-        }, t)
+        notifyEvent({ kind: 'failure', sessionId: id, title, message: error }, optionsFor(cfg), t)
       }
       errorUnsubs.set(id, face.subscribe(onSnapshot))
       onSnapshot()
@@ -175,7 +192,8 @@ export function apply(ctx: Context): void {
         if (failed && !cfg.failure) continue
         if (!failed && !cfg.job) continue
       }
-      notifyEvent(event, { browser: cfg.browser, sound: cfg.sound }, t)
+      if (suppressed(cfg, event.sessionId)) continue
+      notifyEvent(event, optionsFor(cfg), t)
     }
   }
 

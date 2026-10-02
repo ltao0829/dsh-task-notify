@@ -4,3 +4,5 @@ lib/tsconfig.tsbuildinfo
 .DS_Store
 # `pnpm pack` output from a local verify:run; never publish or commit it.
 *.tgz
+# vitest --coverage output (text/lcov/html); CI uploads lcov as an artifact instead.
+coverage/

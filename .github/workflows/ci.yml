@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build:
-    name: typecheck + test + build (Node ${{ matrix.node-version }})
+    name: typecheck + test + build + coverage (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -41,6 +41,20 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      # Runs the same suite with V8 coverage; vitest.config.ts thresholds
+      # make a coverage drop fail the build. Must stay after Build — the
+      # bundle suite asserts against lib/.
+      - name: Coverage
+        run: pnpm run coverage
+
+      - name: Upload coverage artifact
+        if: always() && matrix.node-version == '24'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-lcov-node-${{ matrix.node-version }}
+          path: coverage/lcov.info
+          if-no-files-found: error
 
       - name: Pack dry-run (verify publish tarball)
         run: pnpm pack --dry-run

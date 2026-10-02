@@ -1,6 +1,6 @@
 /**
  * Reminder rendering — a self-contained DOM toast plus optional browser
- * (OS-level) notification and a short Web Audio beep.
+ * (OS-level) notification and a configurable sound.
  *
  * No React and no slot dependency: the toast mounts directly on document.body
  * so a reminder still works on screens with no Conversation seat (no Session
@@ -8,44 +8,82 @@
  * seat for frame-wide floating layers, but that seat is Session-agnostic only
  * in principle — occupying it costs a React root and a slot registration for
  * what is a transient, dismissable banner.
+ *
+ * Every option degrades quietly: a bad template falls back to the built-in
+ * copy, a broken custom sound to silence, and every rendered string goes
+ * through `textContent`, so a template can never inject markup.
  * @module @ltao0829/dsh-task-notify/client/notify
  */
 
 import type { CompletionEvent } from '../detect.ts'
+import type { SoundMode, ToastPosition } from './settings.ts'
 import type { TaskNotifyTranslate } from './locales.ts'
 
-/** Notification channels the watcher may use (read from settings). */
+/** Notification channels and presentation options the watcher may use. */
 export interface NotifyOptions {
   /** Whether to send a browser Notification, when permission is granted. */
   browser: boolean
-  /** Whether to play the completion beep. */
-  sound: boolean
+  /** Which sound to play (`'off'` plays nothing). */
+  sound: SoundMode
+  /** Audio URL for `sound: 'custom'`; an empty URL falls back to the built-in two-tone. */
+  soundUrl?: string
+  /** Sound volume `0`–`1`; out-of-range or junk values are clamped. */
+  volume?: number
+  /** Screen corner the toasts dock to. */
+  toastPosition?: ToastPosition
+  /** Seconds a toast stays on screen, clamped to `3`–`15`. */
+  toastSeconds?: number
+  /** Title template; empty or blank uses the built-in localized title. */
+  templateTitle?: string
+  /** Body template; empty or blank uses the built-in localized body. */
+  templateBody?: string
 }
 
-/** How long a toast stays on screen. */
-const TOAST_MS = 5000
+/** How long a toast stays on screen when no (or an invalid) duration is set. */
+const DEFAULT_TOAST_SECONDS = 5
+const MIN_TOAST_SECONDS = 3
+const MAX_TOAST_SECONDS = 15
 
 /** Maximum stacked toasts before the oldest is dropped. */
 const MAX_TOASTS = 4
 
+/** Fixed offsets of the toast column inside each screen corner. */
+const POSITION_CSS: Record<ToastPosition, readonly [string, string]> = {
+  'bottom-right': ['right:16px', 'bottom:16px'],
+  'bottom-left': ['left:16px', 'bottom:16px'],
+  'top-right': ['right:16px', 'top:16px'],
+  'top-left': ['left:16px', 'top:16px'],
+}
+
+/** Placeholders a custom template may use; anything else stays literal. */
+const TEMPLATE_PLACEHOLDER = /\{(title|session|kind)\}/g
+
 let toastHost: HTMLDivElement | null = null
 let audio: AudioContext | null = null
 
-/** Locate or create the fixed toast column appended to document.body. */
-function ensureToastHost(): HTMLDivElement {
-  if (toastHost !== null && document.body.contains(toastHost)) return toastHost
-  const host = document.createElement('div')
-  host.setAttribute('data-task-notify-toasts', '')
-  host.style.cssText = [
+/** Compose the toast column's stylesheet for one screen corner. */
+function hostStyle(position: ToastPosition): string {
+  return [
     'position:fixed',
-    'right:16px',
-    'bottom:16px',
+    ...POSITION_CSS[position],
     'z-index:2147483000',
     'display:flex',
     'flex-direction:column',
     'gap:8px',
     'pointer-events:none',
   ].join(';') + ';'
+}
+
+/** Locate or create the fixed toast column appended to document.body, docked to `position`. */
+function ensureToastHost(position: ToastPosition): HTMLDivElement {
+  const style = hostStyle(position)
+  if (toastHost !== null && document.body.contains(toastHost)) {
+    toastHost.style.cssText = style
+    return toastHost
+  }
+  const host = document.createElement('div')
+  host.setAttribute('data-task-notify-toasts', '')
+  host.style.cssText = style
   document.body.appendChild(host)
   toastHost = host
   return host
@@ -72,15 +110,29 @@ function bodyOf(event: CompletionEvent, t: TaskNotifyTranslate): string {
 }
 
 /**
- * Human label for a pending-interaction kind.
+ * The value one template placeholder expands to.
  *
- * The kind is a domain-owned open string (ui-approval, ui-plan,
- * ui-user-questions each merge their own), so an unrecognized domain falls back
- * to the wire word rather than to a wrong translation.
- * @param kind - the pending interaction's domain discriminator.
- * @param t - namespace-bound translate.
- * @returns display text.
+ * `{kind}` is the localized event label ("任务已完成" and friends), `{title}`
+ * the most human-readable task label the event carries, `{session}` the raw
+ * session id.
  */
+function templateValue(part: 'title' | 'session' | 'kind', event: CompletionEvent, t: TaskNotifyTranslate): string {
+  if (part === 'session') return event.sessionId
+  if (part === 'kind') return titleOf(event, t)
+  if (event.kind === 'job') return event.job.label === '' ? event.job.kind : event.job.label
+  return event.title ?? event.sessionId
+}
+
+/**
+ * Expand a custom template. Produces a plain string — the toast renders it
+ * with `textContent`, so no template can inject markup. Unknown placeholders
+ * (`{bogus}`) are left as written rather than silently dropped.
+ */
+function renderTemplate(template: string, event: CompletionEvent, t: TaskNotifyTranslate): string {
+  return template.replace(TEMPLATE_PLACEHOLDER, (_, part: 'title' | 'session' | 'kind') => templateValue(part, event, t))
+}
+
+/** Human label for a pending-interaction kind. */
 function reviewKindLabel(kind: string, t: TaskNotifyTranslate): string {
   if (kind === 'approval') return t('review.approval')
   if (kind === 'plan-review') return t('review.planReview')
@@ -90,16 +142,24 @@ function reviewKindLabel(kind: string, t: TaskNotifyTranslate): string {
 
 /** Fire every enabled channel for one completion event. */
 export function notifyEvent(event: CompletionEvent, options: NotifyOptions, t: TaskNotifyTranslate): void {
-  const title = titleOf(event, t)
-  const body = bodyOf(event, t)
-  showToast(title, body)
+  const titleTemplate = options.templateTitle ?? ''
+  const bodyTemplate = options.templateBody ?? ''
+  const title = titleTemplate.trim() === '' ? titleOf(event, t) : renderTemplate(titleTemplate, event, t)
+  const body = bodyTemplate.trim() === '' ? bodyOf(event, t) : renderTemplate(bodyTemplate, event, t)
+  showToast(title, body, options.toastSeconds, options.toastPosition ?? 'bottom-right')
   if (options.browser) showBrowserNotification(title, body)
-  if (options.sound) playSound()
+  if (options.sound !== 'off') playSound(options.sound, options.volume ?? 1, options.soundUrl ?? '')
+}
+
+/** Clamp a configured toast duration into the supported range. */
+function toastMs(seconds: number | undefined): number {
+  if (typeof seconds !== 'number' || !Number.isFinite(seconds)) return DEFAULT_TOAST_SECONDS * 1000
+  return Math.min(MAX_TOAST_SECONDS, Math.max(MIN_TOAST_SECONDS, Math.round(seconds))) * 1000
 }
 
 /** Append one auto-dismissing toast card. */
-function showToast(title: string, body: string): void {
-  const host = ensureToastHost()
+function showToast(title: string, body: string, seconds: number | undefined, position: ToastPosition): void {
+  const host = ensureToastHost(position)
   while (host.children.length >= MAX_TOASTS) {
     const first = host.firstElementChild
     if (first === null) break
@@ -136,7 +196,7 @@ function showToast(title: string, body: string): void {
   toast.appendChild(titleEl)
   toast.appendChild(bodyEl)
   host.appendChild(toast)
-  window.setTimeout(() => { toast.remove() }, TOAST_MS)
+  window.setTimeout(() => { toast.remove() }, toastMs(seconds))
 }
 
 /** Send an OS-level notification, no-oping without permission or support. */
@@ -162,23 +222,54 @@ export function requestBrowserNotificationPermission(): Promise<NotificationPerm
   return Notification.requestPermission()
 }
 
-/** Play a short two-tone completion beep through the Web Audio API. */
-function playSound(): void {
+/** Clamp a configured volume into the `0`–`1` range Web Audio and `<audio>` accept. */
+function clampVolume(volume: number): number {
+  return Number.isFinite(volume) ? Math.min(1, Math.max(0, volume)) : 1
+}
+
+/**
+ * Play a custom audio file. An empty URL falls back to the built-in two-tone;
+ * an unloadable URL or an autoplay refusal degrades to silence — the toast is
+ * already showing either way.
+ */
+function playCustomSound(url: string, volume: number): void {
+  if (url.trim() === '') {
+    playTone('double', volume)
+    return
+  }
+  try {
+    const audio = new Audio(url)
+    audio.volume = clampVolume(volume)
+    const played = audio.play()
+    if (played !== undefined) void played.catch(() => { /* non-fatal; the toast already shows */ })
+  } catch {
+    // The engine refused the element; a missed beep is fine.
+  }
+}
+
+/**
+ * Play the built-in beep through the Web Audio API: a single 880 Hz tone or
+ * the classic two-tone (880 Hz then 1174.66 Hz), scaled by `volume`.
+ */
+function playTone(mode: Extract<SoundMode, 'single' | 'double'>, volume: number): void {
   try {
     const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
     if (Ctor === undefined) return
     if (audio === null) audio = new Ctor()
     const ctx = audio
+    const peak = Math.max(0.0001, 0.16 * clampVolume(volume))
     void ctx.resume().then(() => {
       if (ctx.state !== 'running') return
       const now = ctx.currentTime
       const gain = ctx.createGain()
       gain.gain.setValueAtTime(0.0001, now)
-      gain.gain.exponentialRampToValueAtTime(0.16, now + 0.02)
+      gain.gain.exponentialRampToValueAtTime(peak, now + 0.02)
       gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28)
       gain.connect(ctx.destination)
-      const notes: ReadonlyArray<readonly [number, number]> = [[0, 880], [0.12, 1174.66]]
-      for (const [delay, freq] of notes) {
+      const schedule: ReadonlyArray<readonly [number, number]> = mode === 'single'
+        ? [[0, 880]]
+        : [[0, 880], [0.12, 1174.66]]
+      for (const [delay, freq] of schedule) {
         const osc = ctx.createOscillator()
         osc.type = 'sine'
         osc.frequency.value = freq
@@ -190,6 +281,16 @@ function playSound(): void {
   } catch {
     // Autoplay policies may block audio until a gesture; a missed beep is fine.
   }
+}
+
+/** Play the configured sound; `'off'` never reaches the audio paths. */
+function playSound(mode: SoundMode, volume: number, url: string): void {
+  if (mode === 'off') return
+  if (mode === 'custom') {
+    playCustomSound(url, volume)
+    return
+  }
+  playTone(mode, volume)
 }
 
 /**

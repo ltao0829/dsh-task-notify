@@ -4,6 +4,7 @@
 
 [![CI](https://github.com/ltao0829/dsh-task-notify/actions/workflows/ci.yml/badge.svg)](https://github.com/ltao0829/dsh-task-notify/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/@ltao0829/dsh-task-notify)](https://www.npmjs.com/package/@ltao0829/dsh-task-notify)
+[![npm downloads](https://img.shields.io/npm/dm/@ltao0829/dsh-task-notify)](https://www.npmjs.com/package/@ltao0829/dsh-task-notify)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](./LICENSE)
 
 **English** · [简体中文](./README.zh-CN.md)
@@ -32,6 +33,7 @@ Long-running agent tasks invert the normal attention model: instead of watching 
 - **Failure** — fires when an agent turn errors or a background job fails / is killed.
 - **Three channels** — OS-level browser notification, in-page toast, optional two-tone beep.
 - **Per-event config** — every trigger and channel can be toggled independently.
+- **Customizable** — title/body templates, sound style and volume, toast corner and duration, quiet hours, per-session mute.
 
 ## Requirements
 
@@ -70,13 +72,13 @@ dsh plugin --profile <profile> remove @ltao0829/dsh-task-notify
 # desktop app: remove it from Settings → Plugins
 ```
 
-This drops the package and its bundle entry, so the `task-notify` row disappears from the composed profile. The browser-side record in `localStorage` (`dsh.taskNotify.v2`) is not part of the profile: clear that key if you want a reinstall to start from defaults.
+This drops the package and its bundle entry, so the `task-notify` row disappears from the composed profile. The browser-side record in `localStorage` (`dsh.taskNotify.v3`) is not part of the profile: clear that key if you want a reinstall to start from defaults.
 
 ## Configuration
 
-The settings page lives in the **Plugins** section of DSH's settings UI (the `settings.plugins.tab` seat added in DSH 0.2), as a page titled *Task completion reminder*. Values are stored locally in `localStorage` (`dsh.taskNotify.v2`):
+The settings page lives in the **Plugins** section of DSH's settings UI (the `settings.plugins.tab` seat added in DSH 0.2), as a page titled *Task completion reminder*. Values are stored locally in `localStorage` under `dsh.taskNotify.v3`. A leftover `v2` record is migrated once — every toggle is kept and the old sound toggle becomes the two-tone mode — and the `v2` key is then removed:
 
-| Toggle | Default | Meaning |
+| Switch | Default | Meaning |
 | --- | --- | --- |
 | Enable reminders | on | master switch |
 | Turn completion reminder | on | an agent turn finishes |
@@ -85,9 +87,21 @@ The settings page lives in the **Plugins** section of DSH's settings UI (the `se
 | Review-needed reminder | on | a running task waits for approval / plan review / question |
 | Failure reminder | on | a turn errors or a job fails / is killed |
 | Browser notification | on | also send an OS-level notification (needs permission) |
-| Sound | off | also play a short beep |
 
-The in-page toast has no toggle — it is the always-available channel, and the fallback whenever a notification is denied or a beep is blocked.
+### Sound, toasts, and quiet hours
+
+| Setting | Default | Meaning |
+| --- | --- | --- |
+| Sound | None | None / single tone / two-tone / custom audio |
+| Audio URL | empty | played when the mode is *custom audio*; an empty or unloadable URL falls back to the two-tone |
+| Volume | 100% | applies to every sound style |
+| Toast position | Bottom right | any of the four screen corners |
+| Duration (seconds) | 5 | 3–15 seconds before a toast auto-dismisses |
+| Custom title / body template | empty | placeholders `{title}` (task title), `{session}` (session ID), `{kind}` (event type); empty uses the built-in localized copy |
+| Quiet hours | off | suppress every reminder inside a local-time window; windows may cross midnight (e.g. 22:00 → 08:00) |
+| Muted sessions | empty | one session ID per line; these sessions never trigger a reminder |
+
+The in-page toast has no switch — it is the always-available channel, and the fallback whenever a notification is denied or a beep is blocked. Template output is rendered as plain text, so a template cannot inject markup.
 
 ## Troubleshooting
 
@@ -96,6 +110,7 @@ The in-page toast has no toggle — it is the always-available channel, and the 
 | Toast shows, but no OS notification | `Notification.permission` is not `granted`; the plugin no-ops rather than failing | Grant the permission. Browsers only prompt during a user gesture, so click once in the page — or toggle **Browser notification** off and on, which asks explicitly |
 | No beep | Web Audio starts suspended until a user gesture | Click or press a key once in the page; audio is unlocked on the first gesture |
 | Nothing at all | Master switch or the specific trigger is off | Check **Enable reminders** and the per-event toggles |
+| No reminder around the hours you set | Quiet hours are enabled and the current local time falls inside the window | Disable **Quiet hours** or adjust the window; sessions on the **Muted sessions** list stay silent too |
 | A turn that already finished produced no reminder | The first snapshot after a page load only establishes a baseline | Expected — history is never replayed on refresh |
 | Background-job reminders arrive for the session you are watching but not others | By default only Sessions observed running since this page loaded hold a `job.list` stream | Turn on **Watch background jobs in every session** |
 | A failed turn produces no reminder | `lastAgentError` exists only on a retained Session face | Expected — the plugin covers the Sessions the workspace already keeps open and does not retain extra Sessions just to watch for errors |
@@ -189,10 +204,12 @@ This section is the single source of truth for planned work; [`CHANGELOG.md`](./
 ### Near term
 
 - [ ] Demo recordings for the README
-- [ ] npm download metrics / adoption tracking
+- [x] npm download metrics (shields.io badge, npm public API only)
+- [ ] Adoption tracking over time (weekly download trend)
 - [ ] Cross-platform notification backend
-- [ ] Notification customization
-- [ ] Better test coverage
+- [x] Notification customization
+- [x] Test coverage measurement and a raise-only regression gate
+- [ ] Raise coverage of the watcher and the notification renderer
 
 ### Long term
 
@@ -244,6 +261,7 @@ Evidence report: [`docs/verification-evidence.md`](./docs/verification-evidence.
 pnpm install
 pnpm run typecheck
 pnpm test
+pnpm run coverage
 pnpm run build
 pnpm run verify:profile
 ```
