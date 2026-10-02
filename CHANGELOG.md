@@ -6,12 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 ## [Unreleased]
 
-### Planned
+Planned work is tracked in exactly one place: the [Roadmap](./README.md#roadmap) in `README.md`. This file records what has shipped, so an item appears here only once it is implemented — not when it is merely intended.
 
-- npm distribution and download metrics
-- Host-agnostic lifecycle interface (split the detection core from the DSH adapter)
-- Additional coding-agent adapters (Claude Code, Codex, OpenCode, …)
-- Cross-platform notification backends
+### Changed
+
+- **Documentation on `main` since `0.2.0`.** Install guidance in both READMEs names a version range (pnpm 11's 24-hour `minimumReleaseAge` cooldown would otherwise resolve the bare name to an older release), pins Git installs to the `v0.2.0` tag, and states the DSH line pairing. Both READMEs also gained a language switch, a requirements table, an uninstall section, a troubleshooting table, and settings labels that match `src/client/locales.ts`; the demo table lists the three recording file names instead of embedding GIFs that are not in the repository.
+- Added `docs/roadmap-plan.md`: scope, technical constraints, dependencies, risks, and acceptance criteria for every open roadmap item.
+
+### Fixed
+
+- **Corrected the DSH 0.1.x install path.** Both READMEs told DSH 0.1.x users to install `0.1.2`, but npm has only ever carried `0.1.0` and `0.2.0` and no `v0.1.1`/`v0.1.2` tag exists, so the instruction could not be followed. The `0.1.x` line is now documented as discontinued, with a pointer to the DSH upgrade.
 
 ## [0.2.0] - 2026-10-02
 

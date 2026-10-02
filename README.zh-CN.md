@@ -173,6 +173,8 @@ tests/*.spec.ts                      检测器、生命周期、设置、通知�
 
 ## 路线图
 
+本节是"计划中工作"的唯一真源；[`CHANGELOG.md`](./CHANGELOG.md) 只记录已经交付的内容。每项的范围、依赖、风险与验收标准见 [`docs/roadmap-plan.md`](./docs/roadmap-plan.md)。
+
 ### 当前阶段
 
 - [x] 对话任务完成通知

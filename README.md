@@ -174,6 +174,8 @@ The plugin runs with the permissions of your DSH process, like any other DSH plu
 
 ## Roadmap
 
+This section is the single source of truth for planned work; [`CHANGELOG.md`](./CHANGELOG.md) records what has shipped. Per-item scope, dependencies, risks, and acceptance criteria are in [`docs/roadmap-plan.md`](./docs/roadmap-plan.md).
+
 ### Current
 
 - [x] Turn-completion notifications
