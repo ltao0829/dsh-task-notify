@@ -50,7 +50,7 @@ jobs:
 
       - name: Upload coverage artifact
         if: always() && matrix.node-version == '24'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-lcov-node-${{ matrix.node-version }}
           path: coverage/lcov.info
@@ -70,7 +70,7 @@ jobs:
 
       - name: Upload disposable profile evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: disposable-profile-evidence-node-${{ matrix.node-version }}
           path: docs/verification-evidence.md
