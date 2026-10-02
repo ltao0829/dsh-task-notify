@@ -6,6 +6,8 @@
 [![npm version](https://img.shields.io/npm/v/@ltao0829/dsh-task-notify)](https://www.npmjs.com/package/@ltao0829/dsh-task-notify)
 [![License: BSD-3-Clause](https://img.shields.io/badge/License-BSD--3--Clause-blue.svg)](./LICENSE)
 
+**English** · [简体中文](./README.zh-CN.md)
+
 AI coding agents increasingly run long-lived, autonomous tasks: a turn can take minutes, and the human has usually moved to another window. This project adds the missing **notification layer** on top of an agent's task lifecycle, so the moment an agent **completes**, **fails**, settles a **background job**, or starts **waiting for a human** (approval / plan review / question), you get an in-page toast, an OS-level desktop notification, and an optional sound.
 
 > **Inspired by Codex's desktop-notification UX — not a Codex integration. Not affiliated with or sponsored by OpenAI.** Today the project ships as a DeepSeek Harness (DSH) plugin. Its lifecycle-detection core is host-agnostic and is designed to grow into adapters for other coding agents.
@@ -16,11 +18,11 @@ Long-running agent tasks invert the normal attention model: instead of watching 
 
 ## Demo
 
-> Placeholder — replace with short recordings (GIF or MP4, ~10–30 s each). See [`docs/demo-guide.md`](./docs/demo-guide.md).
+> Recordings are not in the repository yet, so the table below lists the three clips by name instead of embedding them. The capture plan (scenes, tooling, size budget) and the exact markup to restore are in [`docs/demo-guide.md`](./docs/demo-guide.md).
 
-| Turn completed | Approval required | Background job failed |
+| Turn completed | Review needed | Background job failed |
 | --- | --- | --- |
-| ![Turn completed](docs/demo-turn.gif) | ![Approval required](docs/demo-review.gif) | ![Job failed](docs/demo-failure.gif) |
+| `docs/demo-turn.gif` | `docs/demo-review.gif` | `docs/demo-failure.gif` |
 
 ## Features
 
@@ -31,9 +33,15 @@ Long-running agent tasks invert the normal attention model: instead of watching 
 - **Three channels** — OS-level browser notification, in-page toast, optional two-tone beep.
 - **Per-event config** — every trigger and channel can be toggled independently.
 
-## Install
+## Requirements
 
-Prerequisites: [Node.js](https://nodejs.org) `>=22` and [pnpm](https://pnpm.io).
+| Requirement | Notes |
+| --- | --- |
+| **DeepSeek Harness** | `0.2.0-rc.2` or newer `0.2.x` — the compatibility gate reads `peerDependencies`, and every DSH peer is pinned to `^0.2.0-rc.2` |
+| **Node.js** | `>=22.0.0` (CI runs Node 22 and 24; the shipped desktop runtime embeds Node 24) |
+| **pnpm** | Needed only when installing through the `dsh plugin` CLI. The desktop app installs with the pnpm it bundles |
+
+## Install
 
 ```sh
 # from npm — name the range, see the cooldown note below
@@ -43,28 +51,56 @@ dsh plugin --profile <profile> add @ltao0829/dsh-task-notify@^0.2.0
 dsh plugin --profile <profile> add git+https://github.com/ltao0829/dsh-task-notify.git#v0.2.0
 ```
 
-`<profile>` is the DSH profile to install into — `web` for a `dsh web` server, `desktop` for the desktop app.
+`<profile>` is the DSH profile to install into — `web` for a `dsh web` server, `desktop` for the desktop app. Installing adds the package to the profile and registers its bundle patch, which inserts the single `task-notify` row that mounts both halves of the plugin.
 
-> **Version and DSH line must match.** `0.2.x` requires **DeepSeek Harness 0.2**; on DSH 0.1.x install `0.1.2` instead. The two lines cannot be mixed in either direction: DSH 0.2's compatibility gate refuses the 0.1.x line outright, and DSH 0.1.x cannot load the 0.2.x line.
+On the **desktop app**, install from the app's own **Settings → Plugins** surface. The `desktop` profile is owned by the Electron application — a live profile applies plugin changes immediately and needs no restart, and `dsh --profile desktop …` refuses to run that profile from a second CLI process.
+
+After installing into a `dsh web` server, restart it and refresh the page. On the first click/keypress the browser asks for notification permission — allow it to receive desktop notifications.
+
+> **The version line must match your DSH line.** `0.2.x` requires **DeepSeek Harness 0.2**; the `0.1.x` line requires DSH 0.1.x. They cannot be mixed in either direction: DSH 0.2's compatibility gate refuses the `0.1.x` line outright, and DSH 0.1.x cannot load the `0.2.x` line.
+>
+> The `0.1.x` line is **discontinued**. npm carries only `0.1.0`; the later `0.1.1` and `0.1.2` fixes exist in the Git history but were never tagged or published. If you are still on DSH 0.1.x, upgrade DSH to 0.2 and install `0.2.x`.
 
 > **Why the version range, not the bare name.** pnpm 11 ships a **24-hour supply-chain cooldown** (`minimumReleaseAge` defaults to `24 * 60` minutes). A version published less than a day ago is invisible to version resolution, so `dsh plugin add @ltao0829/dsh-task-notify` would silently resolve to the *previous* release and be rejected as incompatible. Naming a version or range makes pnpm record a `minimumReleaseAgeExclude` entry and install it straight away; the bare name starts resolving correctly once the release is a day old.
 
-Restart `dsh web` and refresh the page. On the first click/keypress the browser asks for notification permission — allow it to receive desktop notifications.
+### Uninstall
+
+```sh
+dsh plugin --profile <profile> remove @ltao0829/dsh-task-notify
+# desktop app: remove it from Settings → Plugins
+```
+
+This drops the package and its bundle entry, so the `task-notify` row disappears from the composed profile. The browser-side record in `localStorage` (`dsh.taskNotify.v2`) is not part of the profile: clear that key if you want a reinstall to start from defaults.
 
 ## Configuration
 
-The settings page lives in the **Plugins** section of DSH's settings UI (the `settings.plugins.tab` seat added in DSH 0.2). Values are stored locally in `localStorage` (`dsh.taskNotify.v2`):
+The settings page lives in the **Plugins** section of DSH's settings UI (the `settings.plugins.tab` seat added in DSH 0.2), as a page titled *Task completion reminder*. Values are stored locally in `localStorage` (`dsh.taskNotify.v2`):
 
 | Toggle | Default | Meaning |
 | --- | --- | --- |
 | Enable reminders | on | master switch |
-| Turn completion | on | an agent turn finishes |
-| Background job | on | a background command / subagent job settles |
-| Watch every session | off | open a job stream for every session in the list instead of only the sessions active since this page loaded |
-| Review needed | on | a running task waits for approval / plan review / question |
-| Failure | on | a turn errors or a job fails / is killed |
+| Turn completion reminder | on | an agent turn finishes |
+| Background job reminder | on | a background command / subagent job settles |
+| Watch background jobs in every session | off | open a job stream for every session in the list instead of only the sessions active since this page loaded |
+| Review-needed reminder | on | a running task waits for approval / plan review / question |
+| Failure reminder | on | a turn errors or a job fails / is killed |
 | Browser notification | on | also send an OS-level notification (needs permission) |
 | Sound | off | also play a short beep |
+
+The in-page toast has no toggle — it is the always-available channel, and the fallback whenever a notification is denied or a beep is blocked.
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| Toast shows, but no OS notification | `Notification.permission` is not `granted`; the plugin no-ops rather than failing | Grant the permission. Browsers only prompt during a user gesture, so click once in the page — or toggle **Browser notification** off and on, which asks explicitly |
+| No beep | Web Audio starts suspended until a user gesture | Click or press a key once in the page; audio is unlocked on the first gesture |
+| Nothing at all | Master switch or the specific trigger is off | Check **Enable reminders** and the per-event toggles |
+| A turn that already finished produced no reminder | The first snapshot after a page load only establishes a baseline | Expected — history is never replayed on refresh |
+| Background-job reminders arrive for the session you are watching but not others | By default only Sessions observed running since this page loaded hold a `job.list` stream | Turn on **Watch background jobs in every session** |
+| A failed turn produces no reminder | `lastAgentError` exists only on a retained Session face | Expected — the plugin covers the Sessions the workspace already keeps open and does not retain extra Sessions just to watch for errors |
+| Install rejected as incompatible | `0.1.x` plugin against DSH 0.2, or the reverse | Match the lines — see the pairing note under [Install](#install) |
+| The bare package name installs an older release | pnpm 11's 24-hour `minimumReleaseAge` cooldown | Name the range: `@^0.2.0` |
 
 ## Architecture
 
@@ -108,6 +144,10 @@ Consequences worth knowing:
 - `job.list` is a **per-Session** stream. By default the plugin opens one for each Session observed running since this page loaded — a Session that never ran here cannot hold a job whose completion this page is waiting on. "Watch every session" switches to the whole catalog at the cost of one stream per Session.
 - Turn-failure detection reads `lastAgentError`, which exists only on a **retained** Session face. The plugin therefore covers the Sessions the workspace already keeps open and does not retain extra Sessions just to watch for errors.
 
+### Notification channels
+
+The toast mounts directly on `document.body` with no React root and no slot registration, so a reminder still works on screens with no Conversation seat (no Session selected, settings panel open, and so on). At most four toasts stack, each for five seconds. The browser notification is sent only when permission is already `granted`, and the beep resumes a suspended `AudioContext` on first use — every channel degrades quietly rather than throwing.
+
 ## Project layout
 
 ```text
@@ -146,6 +186,7 @@ The plugin runs with the permissions of your DSH process, like any other DSH plu
 
 ### Near term
 
+- [ ] Demo recordings for the README
 - [ ] npm download metrics / adoption tracking
 - [ ] Cross-platform notification backend
 - [ ] Notification customization
@@ -176,7 +217,7 @@ See [`CONTRIBUTING.md`](./CONTRIBUTING.md).
 
 DSH 0.2 stopped reading the retired `dsh.compatibility` block. Before a profile imports a plugin, `evaluatePluginCompatibility` (`@deepseek-ai/dsh-app-boot`) checks every `@deepseek-ai/dsh` / `@deepseek-ai/dsh-*` entry in **`peerDependencies`** against the single runtime version, with prereleases participating in ranges. This package therefore pins every DSH peer to `^0.2.0-rc.2` and mirrors the same range in `engines.dsh`; `tests/manifest.spec.ts` fails the build if any peer drifts.
 
-> Version `0.2.0` is a **breaking re-target**, not an incremental release: the 0.1.x line is built against the retired `@deepseek-ai/dsh-client-runtime` and the `settings.plugin.item` seat, neither of which exists in DSH 0.2.
+> Version `0.2.0` is a **breaking re-target**, not an incremental release: the 0.1.x line is built against the retired `@deepseek-ai/dsh-client-runtime` and the `settings.plugin.item` seat, neither of which exists in DSH 0.2. Only `0.1.0` was ever published to npm; `0.1.1` and `0.1.2` are Git-history-only.
 
 ### Isolated Verification Command
 
@@ -193,7 +234,7 @@ configurable with `DSH_PLUGIN_INSTALL_TIMEOUT_MS`.
 
 Evidence report: [`docs/verification-evidence.md`](./docs/verification-evidence.md).
 
-> **Note on limitations**: Catalog validation and disposable profile acceptance verify the plugin lifecycle contract and standard Web profile boot. System-level OS notifications require user-granted browser notification permissions. The disposable-profile run installs the packed tarball into a throwaway `DSH_HOME`; it proves the plugin is *accepted and loaded*, and the client bundle's externals are additionally checked to be platform modules only.
+> **Note on limitations**: Catalog validation and disposable profile acceptance verify the plugin lifecycle contract and standard Web profile boot. System-level OS notifications require user-granted browser notification permissions. The disposable-profile run installs the packed tarball into a throwaway `DSH_HOME`; it proves the plugin is *accepted and loaded*, and the client bundle's externals are additionally checked to be platform modules only. It does not drive a real browser, so in-page notification behaviour is covered by the jsdom suites instead.
 
 ## Development
 
@@ -204,6 +245,8 @@ pnpm test
 pnpm run build
 pnpm run verify:profile
 ```
+
+`pnpm run build` must run before `pnpm test`: `tests/bundle.spec.ts` asserts that the emitted `lib/client.js` requires only frozen platform modules. `lib/` is committed, so a source change is not complete until the rebuilt artifacts are included.
 
 ## License
 

@@ -1,6 +1,6 @@
 # Demo 录制指南（Demo GIF guide）
 
-README 顶部的 Demo 表格目前是占位图。录制三个 10–30 秒的短动画，放到本目录（`docs/`）并替换 README 中的占位链接即可。
+README 顶部的 Demo 表格目前只列出文件名，不嵌入图片——这样仓库里不会出现三个裂图。录制三个 10–30 秒的短动画放到本目录（`docs/`），再把表格单元格换成图片写法即可。
 
 ## 目标文件
 
@@ -60,4 +60,12 @@ ffmpeg -i demo-turn.mp4 -vf "fps=10,scale=640:-1" -loop 0 demo-turn.gif
 
 ## 替换 README 占位
 
-把三个文件放到 `docs/` 后，`README.md` 和 `README.zh-CN.md` 的 Demo 表格会自动指向它们（路径已写为 `docs/demo-*.gif`），无需再改 README。
+把三个 GIF 放到 `docs/` 后，把 `README.md` 与 `README.zh-CN.md` 的 Demo 表格单元格从文件名换成图片：
+
+```md
+| Turn completed | Review needed | Background job failed |
+| --- | --- | --- |
+| ![Turn completed](docs/demo-turn.gif) | ![Review needed](docs/demo-review.gif) | ![Job failed](docs/demo-failure.gif) |
+```
+
+中文版同名表格换成对应中文 alt 文本即可。三个文件齐了再一起替换，避免中途出现裂图。
