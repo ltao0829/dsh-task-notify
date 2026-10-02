@@ -63,7 +63,7 @@ After installing into a `dsh web` server, restart it and refresh the page. On th
 >
 > The `0.1.x` line is **discontinued**. npm carries only `0.1.0`; the later `0.1.1` and `0.1.2` fixes exist in the Git history but were never tagged or published. If you are still on DSH 0.1.x, upgrade DSH to 0.2 and install `0.3.x`.
 
-> **Why the version range, not the bare name.** pnpm 11 ships a **24-hour supply-chain cooldown** (`minimumReleaseAge` defaults to `24 * 60` minutes). A version published less than a day ago is invisible to version resolution, so `dsh plugin add @ltao0829/dsh-task-notify` would silently resolve to the *previous* release and be rejected as incompatible. Naming a version or range makes pnpm record a `minimumReleaseAgeExclude` entry and install it straight away; the bare name starts resolving correctly once the release is a day old.
+> **Why the version range, not the bare name.** pnpm 11 ships a **24-hour supply-chain cooldown** (`minimumReleaseAge` defaults to `24 * 60` minutes). A version published less than a day ago is invisible to version resolution, so the bare `dsh plugin add @ltao0829/dsh-task-notify` resolves to the newest release that is *older* than a day — measured on 2026-10-02, four minutes after `0.3.0` shipped, it picked `0.1.0` and the compatibility gate refused that. The refusal is loud, not silent: DSH reports the peer mismatch and restores `package.json`, the lockfile, and `node_modules`, so the profile is left intact rather than half-installed. Naming a version or range makes pnpm record a `minimumReleaseAgeExclude` entry and install it straight away; the bare name starts resolving to that release once it is a day old.
 
 ### Uninstall
 

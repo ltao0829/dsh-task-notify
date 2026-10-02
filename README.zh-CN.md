@@ -63,7 +63,7 @@ dsh plugin --profile <profile> add git+https://github.com/ltao0829/dsh-task-noti
 >
 > `0.1.x` 系列已**停止维护**。npm 上只有 `0.1.0`；之后的 `0.1.1`、`0.1.2` 修复只存在于 Git 历史中，从未打过标签、也从未发布。如果你仍在 DSH 0.1.x，请先把 DSH 升级到 0.2，再安装 `0.3.x`。
 
-> **为什么要写版本范围而不是裸包名。** pnpm 11 内置了 **24 小时供应链冷却期**（`minimumReleaseAge` 默认为 `24 * 60` 分钟）。发布时间不足一天的版本对版本解析不可见，因此 `dsh plugin add @ltao0829/dsh-task-notify` 会静默解析到**上一个**发布版本，进而被判为不兼容而拒绝。写明版本或范围后，pnpm 会写入 `minimumReleaseAgeExclude` 并立即安装；等发布满一天后，裸包名也会正常解析到最新版。
+> **为什么要写版本范围而不是裸包名。** pnpm 11 内置了 **24 小时供应链冷却期**（`minimumReleaseAge` 默认为 `24 * 60` 分钟）。发布时间不足一天的版本对版本解析不可见，因此裸写 `dsh plugin add @ltao0829/dsh-task-notify` 会解析到**发布已满一天的最新版本**——2026-10-02 实测：`0.3.0` 发布 4 分钟后安装，它选中了 `0.1.0`，随后被兼容性网关拒绝。这个拒绝是**显式报错而非静默失败**：DSH 会打印 peer 不匹配的原因，并还原 `package.json`、lockfile 与 `node_modules`，Profile 不会停在半装状态。写明版本或范围后，pnpm 会写入 `minimumReleaseAgeExclude` 并立即安装；等该版本发布满一天后，裸包名也会正常解析到它。
 
 ### 卸载
 

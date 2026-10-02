@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 Planned work is tracked in exactly one place: the [Roadmap](./README.md#roadmap) in `README.md`. This file records what has shipped, so an item appears here only once it is implemented — not when it is merely intended.
 
+### Changed
+
+- **Sharpened the install-cooldown note against a measured run.** Four minutes after `0.3.0` published, the bare `dsh plugin add @ltao0829/dsh-task-notify` resolved to `0.1.0` — pnpm's `minimumReleaseAge` window admits the newest release *older* than 24 hours, which is not necessarily the immediately previous one — and DSH refused it with an explicit peer-mismatch error and restored `package.json`, the lockfile, and `node_modules`. Both READMEs now describe that instead of "silently resolves to the previous release".
+
 ## [0.3.0] - 2026-10-02
 
 The first feature release on the DSH 0.2 line: notification customization, a coverage regression gate, and an npm downloads badge. No peer range changed, so a `0.2.x` install upgrades in place.
