@@ -4,14 +4,14 @@
 
 | 项目 | 内容 |
 |---|---|
-| 插件名称与版本 | `@ltao0829/dsh-task-notify@0.2.0` |
-| 固定 Commit | `a68b6d75ad2161e24b38cf9d2531c391daa81e59` |
+| 插件名称与版本 | `@ltao0829/dsh-task-notify@0.3.0` |
+| 固定 Commit | `8537611dbb9316518870c5de1b3030f0cd75222e` |
 | 验证结果 | **PASSED** |
-| 验证时间 | `2026-10-02T06:48:51.774Z` |
+| 验证时间 | `2026-10-02T06:56:22.788Z` |
 | Node.js 运行时 | `v24.18.0` (win32 x64) |
 | DSH 运行时版本 | `0.2.0-rc.2` |
 | 隔离环境 | 临时 `DSH_HOME`，已在验证完成后彻底清理 |
-| 监听服务地址 | `http://127.0.0.1:6977` |
+| 监听服务地址 | `http://127.0.0.1:1710` |
 | 启动文档 | HTTP 200，且已确认客户端模块图包含本插件 |
 | 客户端产物 | 发布包内 `package/lib/client.js`，43466 字节 |
 | 产物外部依赖 | `react`、`react/jsx-runtime` |
@@ -35,7 +35,7 @@
 
 ### 阶段四：运行时启动与监听验收 (`dsh web`)
 - 命令：`dsh --profile web --no-open --port 0`
-- 运行结果：服务在 `http://127.0.0.1:6977` 正常启动并监听。
+- 运行结果：服务在 `http://127.0.0.1:1710` 正常启动并监听。
 - 探测结果：跟随 token 重定向（携带 Cookie）取回启动文档，最终 HTTP 状态码 200；文档携带 `__ModuleLoader__` 引导脚本，且客户端模块图的 combo URL 中列出了本插件，无 `ERR_MODULE_NOT_FOUND`、entry key 或 bundle patch 错误。
 
 ### 阶段五：发布包内客户端产物校验 (`tar -xzf <tarball> package/lib/client.js`)
