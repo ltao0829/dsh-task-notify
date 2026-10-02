@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/), and this
 
 Planned work is tracked in exactly one place: the [Roadmap](./README.md#roadmap) in `README.md`. This file records what has shipped, so an item appears here only once it is implemented — not when it is merely intended.
 
+## [0.3.0] - 2026-10-02
+
+The first feature release on the DSH 0.2 line: notification customization, a coverage regression gate, and an npm downloads badge. No peer range changed, so a `0.2.x` install upgrades in place.
+
 ### Added
 
 - **Notification customization.** The eight boolean switches gained user-facing configuration:
@@ -21,7 +25,7 @@ Planned work is tracked in exactly one place: the [Roadmap](./README.md#roadmap)
 ### Changed
 
 - **Settings storage upgraded to `dsh.taskNotify.v3`.** A leftover `v2` record is migrated once — every toggle is kept, and the retired `sound` boolean maps to `soundMode: 'double'` (off maps to `'off'`) — after which the `v2` key is removed. Every stored field is sanitized on load: junk values degrade to their defaults, `volume` and `toastSeconds` are clamped into `0`–`1` / `3`–`15`.
-- **Documentation on `main` since `0.2.0`.** Install guidance in both READMEs names a version range (pnpm 11's 24-hour `minimumReleaseAge` cooldown would otherwise resolve the bare name to an older release), pins Git installs to the `v0.2.0` tag, and states the DSH line pairing. Both READMEs also gained a language switch, a requirements table, an uninstall section, a troubleshooting table, and settings labels that match `src/client/locales.ts`; the demo table lists the three recording file names instead of embedding GIFs that are not in the repository.
+- **Documentation on `main` since `0.2.0`.** Install guidance in both READMEs names a version range (pnpm 11's 24-hour `minimumReleaseAge` cooldown would otherwise resolve the bare name to an older release), pins Git installs to a release tag, and states the DSH line pairing. Both READMEs also gained a language switch, a requirements table, an uninstall section, a troubleshooting table, and settings labels that match `src/client/locales.ts`; the demo table lists the three recording file names instead of embedding GIFs that are not in the repository.
 - Added `docs/roadmap-plan.md`: scope, technical constraints, dependencies, risks, and acceptance criteria for every open roadmap item.
 - **Settings-page and test hygiene.** The body-template box is now its own labelled field instead of a second box under the title label — a placeholder is not an accessible name. `tests/settings-card.spec.tsx` restores every setting to its documented default in `beforeEach`, so no test can observe another test's edits (the file imports the store statically, and a dynamic import after `vi.resetModules()` would hand the card a second React instance).
 

@@ -47,10 +47,10 @@ Long-running agent tasks invert the normal attention model: instead of watching 
 
 ```sh
 # from npm — name the range, see the cooldown note below
-dsh plugin --profile <profile> add @ltao0829/dsh-task-notify@^0.2.0
+dsh plugin --profile <profile> add @ltao0829/dsh-task-notify@^0.3.0
 
 # or from Git, pinned to a release tag
-dsh plugin --profile <profile> add git+https://github.com/ltao0829/dsh-task-notify.git#v0.2.0
+dsh plugin --profile <profile> add git+https://github.com/ltao0829/dsh-task-notify.git#v0.3.0
 ```
 
 `<profile>` is the DSH profile to install into — `web` for a `dsh web` server, `desktop` for the desktop app. Installing adds the package to the profile and registers its bundle patch, which inserts the single `task-notify` row that mounts both halves of the plugin.
@@ -59,9 +59,9 @@ On the **desktop app**, install from the app's own **Settings → Plugins** surf
 
 After installing into a `dsh web` server, restart it and refresh the page. On the first click/keypress the browser asks for notification permission — allow it to receive desktop notifications.
 
-> **The version line must match your DSH line.** `0.2.x` requires **DeepSeek Harness 0.2**; the `0.1.x` line requires DSH 0.1.x. They cannot be mixed in either direction: DSH 0.2's compatibility gate refuses the `0.1.x` line outright, and DSH 0.1.x cannot load the `0.2.x` line.
+> **The version line must match your DSH line.** `0.2.x` and `0.3.x` require **DeepSeek Harness 0.2**; the `0.1.x` line requires DSH 0.1.x. They cannot be mixed in either direction: DSH 0.2's compatibility gate refuses the `0.1.x` line outright, and DSH 0.1.x cannot load either newer line.
 >
-> The `0.1.x` line is **discontinued**. npm carries only `0.1.0`; the later `0.1.1` and `0.1.2` fixes exist in the Git history but were never tagged or published. If you are still on DSH 0.1.x, upgrade DSH to 0.2 and install `0.2.x`.
+> The `0.1.x` line is **discontinued**. npm carries only `0.1.0`; the later `0.1.1` and `0.1.2` fixes exist in the Git history but were never tagged or published. If you are still on DSH 0.1.x, upgrade DSH to 0.2 and install `0.3.x`.
 
 > **Why the version range, not the bare name.** pnpm 11 ships a **24-hour supply-chain cooldown** (`minimumReleaseAge` defaults to `24 * 60` minutes). A version published less than a day ago is invisible to version resolution, so `dsh plugin add @ltao0829/dsh-task-notify` would silently resolve to the *previous* release and be rejected as incompatible. Naming a version or range makes pnpm record a `minimumReleaseAgeExclude` entry and install it straight away; the bare name starts resolving correctly once the release is a day old.
 
@@ -115,7 +115,7 @@ The in-page toast has no switch — it is the always-available channel, and the 
 | Background-job reminders arrive for the session you are watching but not others | By default only Sessions observed running since this page loaded hold a `job.list` stream | Turn on **Watch background jobs in every session** |
 | A failed turn produces no reminder | `lastAgentError` exists only on a retained Session face | Expected — the plugin covers the Sessions the workspace already keeps open and does not retain extra Sessions just to watch for errors |
 | Install rejected as incompatible | `0.1.x` plugin against DSH 0.2, or the reverse | Match the lines — see the pairing note under [Install](#install) |
-| The bare package name installs an older release | pnpm 11's 24-hour `minimumReleaseAge` cooldown | Name the range: `@^0.2.0` |
+| The bare package name installs an older release | pnpm 11's 24-hour `minimumReleaseAge` cooldown | Name the range: `@^0.3.0` |
 
 ## Architecture
 

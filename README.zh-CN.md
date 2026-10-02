@@ -47,10 +47,10 @@ AI 编程代理越来越多地运行长时间、自主的任务：一轮任务�
 
 ```sh
 # 从 npm 安装 —— 请写明版本范围，原因见下方冷却期说明
-dsh plugin --profile <profile> add @ltao0829/dsh-task-notify@^0.2.0
+dsh plugin --profile <profile> add @ltao0829/dsh-task-notify@^0.3.0
 
 # 或从 Git 安装，锁定发布标签
-dsh plugin --profile <profile> add git+https://github.com/ltao0829/dsh-task-notify.git#v0.2.0
+dsh plugin --profile <profile> add git+https://github.com/ltao0829/dsh-task-notify.git#v0.3.0
 ```
 
 `<profile>` 是要装入的 DSH Profile：`dsh web` 服务器用 `web`，桌面端用 `desktop`。安装会把包写入该 Profile 并注册它的 bundle patch，由后者插入唯一一行 `task-notify`，同时挂载插件的宿主半部与浏览器半部。
@@ -59,9 +59,9 @@ dsh plugin --profile <profile> add git+https://github.com/ltao0829/dsh-task-noti
 
 装入 `dsh web` 服务器后，重启服务并刷新页面。首次在页面里点击/按键时，浏览器会请求「通知」权限，点允许即可收到系统通知。
 
-> **版本必须与 DSH 系列对应。** `0.2.x` 需要 **DeepSeek Harness 0.2**；`0.1.x` 需要 DSH 0.1.x。两个系列不能互相通用：DSH 0.2 的兼容性网关会直接拒绝 `0.1.x` 系列，而 DSH 0.1.x 也无法加载 `0.2.x` 系列。
+> **版本必须与 DSH 系列对应。** `0.2.x` 与 `0.3.x` 需要 **DeepSeek Harness 0.2**；`0.1.x` 需要 DSH 0.1.x。两个系列不能互相通用：DSH 0.2 的兼容性网关会直接拒绝 `0.1.x` 系列，而 DSH 0.1.x 也无法加载更新的系列。
 >
-> `0.1.x` 系列已**停止维护**。npm 上只有 `0.1.0`；之后的 `0.1.1`、`0.1.2` 修复只存在于 Git 历史中，从未打过标签、也从未发布。如果你仍在 DSH 0.1.x，请先把 DSH 升级到 0.2，再安装 `0.2.x`。
+> `0.1.x` 系列已**停止维护**。npm 上只有 `0.1.0`；之后的 `0.1.1`、`0.1.2` 修复只存在于 Git 历史中，从未打过标签、也从未发布。如果你仍在 DSH 0.1.x，请先把 DSH 升级到 0.2，再安装 `0.3.x`。
 
 > **为什么要写版本范围而不是裸包名。** pnpm 11 内置了 **24 小时供应链冷却期**（`minimumReleaseAge` 默认为 `24 * 60` 分钟）。发布时间不足一天的版本对版本解析不可见，因此 `dsh plugin add @ltao0829/dsh-task-notify` 会静默解析到**上一个**发布版本，进而被判为不兼容而拒绝。写明版本或范围后，pnpm 会写入 `minimumReleaseAgeExclude` 并立即安装；等发布满一天后，裸包名也会正常解析到最新版。
 
@@ -115,7 +115,7 @@ dsh plugin --profile <profile> remove @ltao0829/dsh-task-notify
 | 只对当前在看的会话有后台任务提醒 | 默认只为「本页面打开后被观察到运行过」的会话各开一条 `job.list` 流 | 打开**监听全部会话的后台任务** |
 | 任务失败但没有提醒 | `lastAgentError` 只存在于被 retain 的会话 face 上 | 属预期行为——插件覆盖工作区已保持打开的会话，不会为了监听报错而额外 retain 会话 |
 | 安装被判为不兼容 | `0.1.x` 插件装在 DSH 0.2 上，或反之 | 让两个系列对应，见[安装](#安装)中的配对说明 |
-| 用裸包名装到了旧版本 | pnpm 11 的 24 小时 `minimumReleaseAge` 冷却期 | 写明范围：`@^0.2.0` |
+| 用裸包名装到了旧版本 | pnpm 11 的 24 小时 `minimumReleaseAge` 冷却期 | 写明范围：`@^0.3.0` |
 
 ## 架构
 
