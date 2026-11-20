@@ -53,7 +53,7 @@ export interface TaskNotifySettings {
 }
 /** Read the current settings snapshot (stable reference until a change). */
 export declare function getSettings(): TaskNotifySettings;
-/** Set one field, persist, and notify subscribers. */
+/** Set one field, persist, sync to native host if present, and notify subscribers. */
 export declare function setSetting<K extends keyof TaskNotifySettings>(key: K, value: TaskNotifySettings[K]): void;
 /** Subscribe to settings changes; returns the disposer. */
 export declare function subscribeSettings(listener: () => void): () => void;
