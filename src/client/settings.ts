@@ -196,10 +196,28 @@ export function getSettings(): TaskNotifySettings {
   return current
 }
 
-/** Set one field, persist, and notify subscribers. */
+/** POST target of the host native backend's settings bridge. */
+const NATIVE_BRIDGE_PATH = '/api/task-notify/settings'
+
+/** Best-effort push of the current settings to the host native backend. */
+function pushSettingsToNative(settings: TaskNotifySettings): void {
+  if (typeof fetch !== 'function') return
+  try {
+    void Promise.resolve(fetch(NATIVE_BRIDGE_PATH, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ settings }),
+    })).catch(() => {})
+  } catch {
+    // No bridge (headless host) or transient failure; local behavior continues.
+  }
+}
+
+/** Set one field, persist, sync to native host if present, and notify subscribers. */
 export function setSetting<K extends keyof TaskNotifySettings>(key: K, value: TaskNotifySettings[K]): void {
   current = { ...current, [key]: value }
   persist()
+  pushSettingsToNative(current)
   for (const listener of listeners) listener()
 }
 

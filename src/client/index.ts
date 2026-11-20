@@ -75,6 +75,26 @@ export function apply(ctx: Context): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'task-notify: dictionaries')
   const t = ctx.locale.bind(NS)
 
+  // Seed the host native backend with the current settings and UI language
+  // once at startup; every later settings change re-pushes on its own.
+  if (typeof fetch === 'function') {
+    try {
+      const localeSnapshot = (
+        ctx.locale as { getSnapshot?: () => { active?: string } } | undefined
+      )?.getSnapshot?.()
+      void Promise.resolve(fetch('/api/task-notify/settings', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          settings: getSettings(),
+          lang: localeSnapshot?.active === 'zh' ? 'zh' : 'en',
+        }),
+      })).catch(() => {})
+    } catch {
+      // No bridge (headless host) or transient failure; local behavior continues.
+    }
+  }
+
   ctx.slots.inject('settings.plugins.tab', () => ctx.slots.register({
     name: 'settings.plugins.tab',
     id: NS,
