@@ -199,8 +199,21 @@ function showToast(title: string, body: string, seconds: number | undefined, pos
   window.setTimeout(() => { toast.remove() }, toastMs(seconds))
 }
 
-/** Send an OS-level notification, no-oping without permission or support. */
+/**
+ * True when running on a Linux desktop browser. There the host half owns the
+ * OS-notification channel via `notify-send`/D-Bus, so the browser notification
+ * stays silent to prevent duplicate popups while keeping toast and sound active.
+ */
+function isNativeLinuxDesktop(): boolean {
+  if (typeof navigator === 'undefined') return false
+  const nav = navigator as Navigator & { userAgentData?: { platform?: string } }
+  const platform = nav.userAgentData?.platform ?? nav.platform ?? ''
+  return /linux/i.test(platform) && !/android/i.test(nav.userAgent ?? '')
+}
+
+/** Send an OS-level notification, no-oping without permission, support, or on Linux desktop. */
 function showBrowserNotification(title: string, body: string): void {
+  if (isNativeLinuxDesktop()) return
   if (typeof Notification === 'undefined') return
   if (Notification.permission !== 'granted') return
   try {
